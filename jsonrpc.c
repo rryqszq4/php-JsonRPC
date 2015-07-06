@@ -102,21 +102,70 @@ PHP_FUNCTION(jsonrpc_server_new)
 		RETURN_NULL();
 	}
 
+	if (Z_TYPE_P(callbacks) == IS_ARRAY){
+		add_property_zval(object, "callbacks", callbacks);
+	}else {
+		array_init(callbacks);
+		add_property_zval(object, "callbacks", callbacks);
+	}
+
 	add_property_zval(object, "payload", payload);
-	add_property_zval(object, "callbacks", callbacks);
 	add_property_zval(object, "classes", classes);
 
 	payload = NULL;
 	payload = zend_read_property(
 			php_jsonrpc_server_entry, getThis(), "payload", sizeof("payload")-1, 0 TSRMLS_CC
 		);
-	php_var_dump(&payload, 1 TSRMLS_CC);
+	//php_var_dump(&payload, 1 TSRMLS_CC);
 
 	php_printf("jsonrpc_server new\n");
 }
 
+PHP_FUNCTION(jsonrpc_server_register)
+{
+	zval *name, *callback;
+	zval *callbacks;
+	zval *object = getThis();
+	zval *a;
+
+	//MAKE_STD_ZVAL(callback);
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz", 
+		&name, &callback) == FAILURE)
+	{
+		RETURN_NULL();
+	}
+
+	add_property_zval(object, "callback", callback);
+
+	callback = NULL;
+	callback = zend_read_property(
+			php_jsonrpc_server_entry, getThis(), "callback", sizeof("callback")-1, 0 TSRMLS_CC
+		);
+
+	php_var_dump(&callback, 1 TSRMLS_CC);
+
+	callbacks = zend_read_property(
+			php_jsonrpc_server_entry, getThis(), "callbacks", sizeof("callbacks")-1, 0 TSRMLS_CC
+		);
+
+	add_assoc_zval(callbacks, Z_STRVAL_P(name), callback);
+
+	//add_index_zval(callbacks, 1, callback);
+
+	RETURN_ZVAL(getThis(),1,0);
+
+}
+
+PHP_FUNCTION(jsonrpc_server_execute)
+{
+
+}
+
 static zend_function_entry jsonrpc_server_class_functions[] = {
 	PHP_FALIAS(__construct, jsonrpc_server_new, NULL)
+	PHP_FALIAS(register, jsonrpc_server_register, NULL)
+	PHP_FALIAS(execute, jsonrpc_server_execute, NULL)
 	{NULL, NULL, NULL}
 };
 
