@@ -35,6 +35,9 @@ ZEND_DECLARE_MODULE_GLOBALS(jsonrpc)
 static int le_jsonrpc;
 static zend_class_entry *php_jsonrpc_server_entry;
 
+static void shurrik_dump_zval(zval *data TSRMLS_DC);
+static char* shurrik_return_zval_type(zend_uchar type TSRMLS_DC);
+
 /* {{{ jsonrpc_functions[]
  *
  * Every user visible function must have an entry in jsonrpc_functions[].
@@ -90,6 +93,60 @@ static void php_jsonrpc_init_globals(zend_jsonrpc_globals *jsonrpc_globals)
 */
 /* }}} */
 
+static char* shurrik_return_zval_type(zend_uchar type)
+{
+	switch (type) {
+		case IS_NULL:
+			return "IS_NULL";
+			break;
+		case IS_BOOL:
+			return "IS_BOOL";
+			break;
+		case IS_LONG:
+			return "IS_LONG";
+			break;
+		case IS_DOUBLE:
+			return "IS_DOUBLE";
+			break;
+		case IS_STRING:
+			return "IS_STRING";
+			break;
+		case IS_ARRAY:
+			return "IS_ARRAY";
+			break;
+		case IS_OBJECT:
+			return "IS_OBJECT";
+			break;
+		case IS_RESOURCE:
+			return "IS_RESOURCE";
+			break;
+		default :
+			return "unknown";
+	}
+}
+
+static void shurrik_dump_zval(zval *data)
+{
+	php_printf("zval<%p> {\n", data);
+	php_printf("	refcount__gc -> %d\n", data->refcount__gc);
+	php_printf("	is_ref__gc -> %d\n", data->is_ref__gc);
+	php_printf("	type -> %s\n", shurrik_return_zval_type(data->type));
+	php_printf("	zand_value<%p> {\n", data->value);
+
+	php_printf("		lval -> %d\n", data->value.lval);
+	php_printf("		dval -> %e\n", data->value.dval);
+	if (Z_TYPE_P(data) == IS_STRING){
+		php_printf("		str -> %s\n", Z_STRVAL_P(data));
+	}
+	php_printf("		*ht<%p> {\n", data->value.ht);
+	php_printf("		}\n");
+	php_printf("		obj<%p> {\n", data->value.obj);
+	php_printf("		}\n");
+	php_printf("	}\n");
+
+	php_printf("}\n");
+}
+
 PHP_FUNCTION(jsonrpc_server_new)
 {
 	zval *payload, *callbacks, *classes;
@@ -123,10 +180,9 @@ PHP_FUNCTION(jsonrpc_server_new)
 
 PHP_FUNCTION(jsonrpc_server_register)
 {
-	zval *name, *callback;
+	zval *name, *callback, *new;
 	zval *callbacks;
 	zval *object = getThis();
-	zval *a;
 
 	//MAKE_STD_ZVAL(callback);
 
@@ -136,20 +192,30 @@ PHP_FUNCTION(jsonrpc_server_register)
 		RETURN_NULL();
 	}
 
-	add_property_zval(object, "callback", callback);
+	/*add_property_zval(object, "callback", callback);
 
 	callback = NULL;
+	MAKE_STD_ZVAL(callback);
 	callback = zend_read_property(
 			php_jsonrpc_server_entry, getThis(), "callback", sizeof("callback")-1, 0 TSRMLS_CC
 		);
 
 	php_var_dump(&callback, 1 TSRMLS_CC);
+	*/
+
 
 	callbacks = zend_read_property(
 			php_jsonrpc_server_entry, getThis(), "callbacks", sizeof("callbacks")-1, 0 TSRMLS_CC
 		);
 
-	add_assoc_zval(callbacks, Z_STRVAL_P(name), callback);
+	//add_assoc_zval(callbacks, Z_STRVAL_P(name), callback);
+
+	shurrik_dump_zval(callback);
+
+	//if (zend_hash_next_index_insert(Z_ARRVAL_P(callbacks), &callback, sizeof(zval *), NULL) == FAILURE){	
+	//}
+
+	//efree(callback);
 
 	//add_index_zval(callbacks, 1, callback);
 
@@ -162,10 +228,16 @@ PHP_FUNCTION(jsonrpc_server_execute)
 
 }
 
+PHP_FUNCTION(jsonrpc_server_jformat)
+{
+	
+}
+
 static zend_function_entry jsonrpc_server_class_functions[] = {
 	PHP_FALIAS(__construct, jsonrpc_server_new, NULL)
 	PHP_FALIAS(register, jsonrpc_server_register, NULL)
 	PHP_FALIAS(execute, jsonrpc_server_execute, NULL)
+	PHP_FALIAS(jsonformat, jsonrpc_server_jformat, NULL)
 	{NULL, NULL, NULL}
 };
 
