@@ -180,46 +180,34 @@ PHP_FUNCTION(jsonrpc_server_new)
 
 PHP_FUNCTION(jsonrpc_server_register)
 {
-	zval *name, *callback, *new;
+	zval *closure, *val;
+	zval *name;
 	zval *callbacks;
+	zend_function *fptr;
+
 	zval *object = getThis();
 
-	//MAKE_STD_ZVAL(callback);
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz", 
-		&name, &callback) == FAILURE)
+		&name, &closure) == SUCCESS)
 	{
-		RETURN_NULL();
+		fptr = (zend_function*)zend_get_closure_method_def(closure TSRMLS_CC);
+		Z_ADDREF_P(closure);
 	}
-
-	/*add_property_zval(object, "callback", callback);
-
-	callback = NULL;
-	MAKE_STD_ZVAL(callback);
-	callback = zend_read_property(
-			php_jsonrpc_server_entry, getThis(), "callback", sizeof("callback")-1, 0 TSRMLS_CC
-		);
-
-	php_var_dump(&callback, 1 TSRMLS_CC);
-	*/
 
 
 	callbacks = zend_read_property(
 			php_jsonrpc_server_entry, getThis(), "callbacks", sizeof("callbacks")-1, 0 TSRMLS_CC
 		);
 
-	//add_assoc_zval(callbacks, Z_STRVAL_P(name), callback);
 
-	shurrik_dump_zval(callback);
+	MAKE_STD_ZVAL(val);
+	zend_create_closure(val, fptr TSRMLS_CC);
 
-	//if (zend_hash_next_index_insert(Z_ARRVAL_P(callbacks), &callback, sizeof(zval *), NULL) == FAILURE){	
-	//}
+	add_assoc_zval(callbacks, Z_STRVAL_P(name), val);
 
-	//efree(callback);
 
-	//add_index_zval(callbacks, 1, callback);
-
-	RETURN_ZVAL(getThis(),1,0);
+	RETURN_ZVAL(object,1,0);
 
 }
 
