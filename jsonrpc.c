@@ -218,7 +218,42 @@ PHP_FUNCTION(jsonrpc_server_execute)
 
 PHP_FUNCTION(jsonrpc_server_jformat)
 {
+	zval *payload, *val;
+	zval *object = getThis();
 	
+	php_stream *stream;
+	php_stream_context *context = NULL;
+	int len;
+	long maxlen = PHP_STREAM_COPY_ALL;
+	char *contents;
+
+	payload = zend_read_property(
+			php_jsonrpc_server_entry, object, "payload", sizeof("payload")-1, 0 TSRMLS_CC
+		);
+
+	if (Z_TYPE_P(payload) == IS_NULL){
+		context = php_stream_context_alloc(TSRMLS_CC);
+		stream = php_stream_open_wrapper_ex("php://input", "rb",
+				(use_include_path ? USE_PATH : 0) | ENFORCE_SAFE_MODE | REPORT_ERRORS,
+				NULL, context);
+
+		if ((len = php_stream_copy_to_mem(stream, &contents, maxlen, 0)) > 0) {
+
+			if (PG(magic_quotes_runtime)) {
+				contents = php_addslashes(contents, len, &len, 1 TSRMLS_CC); /* 1 = free source string */
+			}
+
+			ZVAL_STRINGL(payload, contents, len, 1);
+		} else if (len == 0) {
+			ZVAL_STRING(payload, "", 1);
+		} else {
+			ZVAL_NULL(payload);
+		}
+		php_stream_close(stream);
+	}
+	if (Z_TYPE_P(payload) == IS_STRING){
+		
+	}
 }
 
 static zend_function_entry jsonrpc_server_class_functions[] = {
