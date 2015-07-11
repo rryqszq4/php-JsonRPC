@@ -252,6 +252,9 @@ PHP_FUNCTION(jsonrpc_server_jformat)
 		php_stream_close(stream);
 	}
 	if (Z_TYPE_P(payload) == IS_STRING){
+		php_json_decode(payload, Z_STRVAL_P(payload), Z_STRLEN_P(payload), 1, 512 TSRMLS_CC);
+	}
+	if (Z_TYPE_P(payload) != IS_ARRAY){
 		
 	}
 }
