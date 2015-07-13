@@ -25,6 +25,8 @@
 #include "php.h"
 #include "php_ini.h"
 #include "ext/standard/info.h"
+#include "SAPI.h"
+#include "ext/json/php_json.h"
 #include "php_jsonrpc.h"
 
 /* If you declare any globals in php_jsonrpc.h uncomment this:
@@ -221,6 +223,7 @@ PHP_FUNCTION(jsonrpc_server_jformat)
 	zval *payload, *val;
 	zval *object = getThis();
 	
+	zend_bool use_include_path = 0;
 	php_stream *stream;
 	php_stream_context *context = NULL;
 	int len;
@@ -259,11 +262,60 @@ PHP_FUNCTION(jsonrpc_server_jformat)
 	}
 }
 
+PHP_FUNCTION(jsonrpc_server_getresponse)
+{
+	zval *data;
+	zval *key;
+	HashTable *payload;
+	zval *response;
+	zval **id = NULL;
+	smart_str buf = {0};
+	sapi_header_line ctr = {0};
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "aH", 
+		&data, &payload) == FAILURE)
+	{
+
+	}
+
+	MAKE_STD_ZVAL(key);
+	ZVAL_STRING(key, "id", 0);
+	if (!zend_symtable_exists(payload, Z_STRVAL_P(key), Z_STRLEN_P(key) + 1))
+	{
+		RETVAL_STRING("", 0);
+		return ;
+	}
+
+	MAKE_STD_ZVAL(response);
+	array_init(response);
+	add_assoc_string(response, "jsonrpc", "2.0", 0);
+	
+	if (zend_hash_find(payload, "id", 3, (void **)&id ) == FAILURE)
+	{
+		RETVAL_STRING("", 0);
+		return ;
+	}
+	convert_to_string(*id);
+	add_assoc_string(response, "id", Z_STRVAL_PP(id), 0);
+
+	zend_hash_merge(Z_ARRVAL_P(response), Z_ARRVAL_P(data), NULL, NULL, sizeof(zval *), 1);
+
+	ctr.line = "Content-Type: application/json";
+	ctr.line_len = strlen(ctr.line);
+	sapi_header_op(SAPI_HEADER_REPLACE, &ctr TSRMLS_CC);
+
+	php_json_encode(&buf, response, 0 TSRMLS_CC);
+	ZVAL_STRINGL(return_value, buf.c, buf.len, 1);
+	smart_str_free(&buf);
+
+}
+
 static zend_function_entry jsonrpc_server_class_functions[] = {
 	PHP_FALIAS(__construct, jsonrpc_server_new, NULL)
 	PHP_FALIAS(register, jsonrpc_server_register, NULL)
 	PHP_FALIAS(execute, jsonrpc_server_execute, NULL)
 	PHP_FALIAS(jsonformat, jsonrpc_server_jformat, NULL)
+	PHP_FALIAS(getresponse, jsonrpc_server_getresponse, NULL)
 	{NULL, NULL, NULL}
 };
 
