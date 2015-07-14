@@ -12,7 +12,7 @@
   | obtain it through the world-wide-web, please send a note to          |
   | license@php.net so we can mail you a copy immediately.               |
   +----------------------------------------------------------------------+
-  | Author:                                                              |
+  | Author: rryqszq4                                                     |
   +----------------------------------------------------------------------+
 */
 
@@ -215,6 +215,51 @@ PHP_FUNCTION(jsonrpc_server_register)
 
 PHP_FUNCTION(jsonrpc_server_execute)
 {
+	zval *object;
+	zval *func;
+	zval retval;
+	zval **func_params;
+	zval *data, *payload, *error, *id, *response;
+
+	object = getThis();
+	
+	MAKE_STD_ZVAL(error);
+	MAKE_STD_ZVAL(id);
+	MAKE_STD_ZVAL(data);
+	array_init(error);
+	array_init(id);
+	array_init(data);
+	add_assoc_long(error, "code", -32767);
+	add_assoc_string(error, "message", "Parse error", 0);
+	add_assoc_null(id,"id");
+	add_assoc_zval(data, "error", error);
+	//add_assoc_zval(response, "id", id);
+
+	INIT_ZVAL(retval);
+	MAKE_STD_ZVAL(func);
+	ZVAL_STRINGL(func, "jsonformat", sizeof("jsonformat") - 1, 0);
+	if (call_user_function(NULL, &object, func, &retval, 0, NULL TSRMLS_CC) == FAILURE){
+
+	}
+
+	if (!Z_BVAL(retval)){
+		goto getresponse;
+	}
+
+getresponse:
+	func_params = emalloc(sizeof(zval *) * 2);
+	func_params[0] = data;
+	func_params[1] = id;
+	
+	ZVAL_STRINGL(func, "getresponse", sizeof("getresponse") - 1, 0);
+	if (call_user_function(NULL, &object, func, &retval, 2, func_params TSRMLS_CC) == FAILURE)
+	{
+
+	}
+
+	efree(func_params);
+	ZVAL_STRINGL(return_value, Z_STRVAL(retval), Z_STRLEN(retval), 1);
+	return ;
 
 }
 
@@ -258,7 +303,9 @@ PHP_FUNCTION(jsonrpc_server_jformat)
 		php_json_decode(payload, Z_STRVAL_P(payload), Z_STRLEN_P(payload), 1, 512 TSRMLS_CC);
 	}
 	if (Z_TYPE_P(payload) != IS_ARRAY){
-		
+		RETVAL_FALSE;
+	}else {
+		RETVAL_TRUE;
 	}
 }
 
@@ -274,8 +321,8 @@ PHP_FUNCTION(jsonrpc_server_getresponse)
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "aH", 
 		&data, &payload) == FAILURE)
-	{
-
+	{	
+		return ;
 	}
 
 	MAKE_STD_ZVAL(key);
@@ -295,8 +342,13 @@ PHP_FUNCTION(jsonrpc_server_getresponse)
 		RETVAL_STRING("", 0);
 		return ;
 	}
-	convert_to_string(*id);
-	add_assoc_string(response, "id", Z_STRVAL_PP(id), 0);
+
+	if (Z_TYPE_PP(id) == IS_NULL){
+		add_assoc_null(response, "id");
+	}else if(Z_TYPE_PP(id) == IS_STRING){
+		convert_to_string(*id);
+		add_assoc_string(response, "id", Z_STRVAL_PP(id), 0);
+	}
 
 	zend_hash_merge(Z_ARRVAL_P(response), Z_ARRVAL_P(data), NULL, NULL, sizeof(zval *), 1);
 
