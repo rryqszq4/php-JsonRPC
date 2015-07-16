@@ -36,6 +36,7 @@ ZEND_DECLARE_MODULE_GLOBALS(jsonrpc)
 /* True global resources - no need for thread safety here */
 static int le_jsonrpc;
 static zend_class_entry *php_jsonrpc_server_entry;
+static zend_class_entry *php_jsonrpc_client_entry;
 
 static void shurrik_dump_zval(zval *data TSRMLS_DC);
 static char* shurrik_return_zval_type(zend_uchar type TSRMLS_DC);
@@ -661,6 +662,11 @@ static zend_function_entry jsonrpc_server_class_functions[] = {
 	{NULL, NULL, NULL}
 };
 
+static zend_function_entry jsonrpc_client_class_functions[] = {
+	PHP_FALIAS(__construct, jsonrpc_client_new, NULL)
+	{NULL, NULL, NULL}
+};
+
 /* {{{ PHP_MINIT_FUNCTION
  */
 PHP_MINIT_FUNCTION(jsonrpc)
@@ -672,6 +678,10 @@ PHP_MINIT_FUNCTION(jsonrpc)
 	zend_class_entry jsonrpc_server_class_entry;
 	INIT_CLASS_ENTRY(jsonrpc_server_class_entry, "Jsonrpc_Server", jsonrpc_server_class_functions);
 	php_jsonrpc_server_entry = zend_register_internal_class(&jsonrpc_server_class_entry TSRMLS_CC);
+
+	zend_class_entry jsonrpc_client_class_entry;
+	INIT_CLASS_ENTRY(jsonrpc_client_class_entry, "Jsonrpc_Client", jsonrpc_client_class_functions);
+	php_jsonrpc_client_entry = zend_register_internal_class(&jsonrpc_client_class_entry TSRMLS_CC);
 
 	return SUCCESS;
 }
