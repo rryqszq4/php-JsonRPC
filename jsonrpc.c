@@ -29,6 +29,9 @@
 #include "ext/json/php_json.h"
 #include "php_jsonrpc.h"
 
+#include <curl/curl.h>
+#include <curl/easy.h>
+
 /* If you declare any globals in php_jsonrpc.h uncomment this:
 ZEND_DECLARE_MODULE_GLOBALS(jsonrpc)
 */
@@ -173,6 +176,236 @@ static zval* jr_server_get_arguments(zval *request_params, zval *method_params,
 	ZVAL_TRUE(retval);
 	return retval;
 }
+
+
+/* {{{ curl_read
+ */
+static size_t curl_read(char *data, size_t size, size_t nmemb, void *ctx)
+{
+	php_curl       *ch = (php_curl *) ctx;
+	php_curl_read  *t  = ch->handlers->read;
+	int             length = 0;
+
+	switch (t->method) {
+		case PHP_CURL_DIRECT:
+			if (t->fp) {
+				length = fread(data, size, nmemb, t->fp);
+			}
+			break;
+		case PHP_CURL_USER: {
+			zval **argv[3];
+			zval  *handle = NULL;
+			zval  *zfd = NULL;
+			zval  *zlength = NULL;
+			zval  *retval_ptr;
+			int   error;
+			zend_fcall_info fci;
+			TSRMLS_FETCH_FROM_CTX(ch->thread_ctx);
+
+			MAKE_STD_ZVAL(handle);
+			MAKE_STD_ZVAL(zfd);
+			MAKE_STD_ZVAL(zlength);
+
+			ZVAL_RESOURCE(handle, ch->id);
+			zend_list_addref(ch->id);
+			ZVAL_RESOURCE(zfd, t->fd);
+			zend_list_addref(t->fd);
+			ZVAL_LONG(zlength, (int) size * nmemb);
+
+			argv[0] = &handle;
+			argv[1] = &zfd;
+			argv[2] = &zlength;
+
+			fci.size = sizeof(fci);
+			fci.function_table = EG(function_table);
+			fci.function_name = t->func_name;
+			fci.object_ptr = NULL;
+			fci.retval_ptr_ptr = &retval_ptr;
+			fci.param_count = 3;
+			fci.params = argv;
+			fci.no_separation = 0;
+			fci.symbol_table = NULL;
+
+			ch->in_callback = 1;
+			error = zend_call_function(&fci, &t->fci_cache TSRMLS_CC);
+			ch->in_callback = 0;
+			if (error == FAILURE) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Cannot call the CURLOPT_READFUNCTION");
+#if LIBCURL_VERSION_NUM >= 0x070c01 /* 7.12.1 */
+				length = CURL_READFUNC_ABORT;
+#endif
+			} else if (retval_ptr) {
+				if (Z_TYPE_P(retval_ptr) == IS_STRING) {
+					length = MIN((int) (size * nmemb), Z_STRLEN_P(retval_ptr));
+					memcpy(data, Z_STRVAL_P(retval_ptr), length);
+				}
+				zval_ptr_dtor(&retval_ptr);
+			}
+
+			zval_ptr_dtor(argv[0]);
+			zval_ptr_dtor(argv[1]);
+			zval_ptr_dtor(argv[2]);
+			break;
+		}
+	}
+
+	return length;
+}
+/* }}} */
+
+/* {{{ curl_write
+ */
+static size_t curl_write(char *data, size_t size, size_t nmemb, void *ctx)
+{
+	php_curl       *ch     = (php_curl *) ctx;
+	php_curl_write *t      = ch->handlers->write;
+	size_t          length = size * nmemb;
+	TSRMLS_FETCH_FROM_CTX(ch->thread_ctx);
+
+#if PHP_CURL_DEBUG
+	fprintf(stderr, "curl_write() called\n");
+	fprintf(stderr, "data = %s, size = %d, nmemb = %d, ctx = %x\n", data, size, nmemb, ctx);
+#endif
+
+	switch (t->method) {
+		case PHP_CURL_STDOUT:
+			PHPWRITE(data, length);
+			break;
+		case PHP_CURL_FILE:
+			return fwrite(data, size, nmemb, t->fp);
+		case PHP_CURL_RETURN:
+			if (length > 0) {
+				smart_str_appendl(&t->buf, data, (int) length);
+			}
+			break;
+		case PHP_CURL_USER: {
+			zval **argv[2];
+			zval *retval_ptr = NULL;
+			zval *handle = NULL;
+			zval *zdata = NULL;
+			int   error;
+			zend_fcall_info fci;
+
+			MAKE_STD_ZVAL(handle);
+			ZVAL_RESOURCE(handle, ch->id);
+			zend_list_addref(ch->id);
+			argv[0] = &handle;
+
+			MAKE_STD_ZVAL(zdata);
+			ZVAL_STRINGL(zdata, data, length, 1);
+			argv[1] = &zdata;
+
+			fci.size = sizeof(fci);
+			fci.function_table = EG(function_table);
+			fci.object_ptr = NULL;
+			fci.function_name = t->func_name;
+			fci.retval_ptr_ptr = &retval_ptr;
+			fci.param_count = 2;
+			fci.params = argv;
+			fci.no_separation = 0;
+			fci.symbol_table = NULL;
+
+			ch->in_callback = 1;
+			error = zend_call_function(&fci, &t->fci_cache TSRMLS_CC);
+			ch->in_callback = 0;
+			if (error == FAILURE) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Could not call the CURLOPT_WRITEFUNCTION");
+				length = -1;
+			} else if (retval_ptr) {
+				if (Z_TYPE_P(retval_ptr) != IS_LONG) {
+					convert_to_long_ex(&retval_ptr);
+				}
+				length = Z_LVAL_P(retval_ptr);
+				zval_ptr_dtor(&retval_ptr);
+			}
+
+			zval_ptr_dtor(argv[0]);
+			zval_ptr_dtor(argv[1]);
+			break;
+		}
+	}
+
+	return length;
+}
+/* }}} */
+
+/* {{{ curl_write_header
+ */
+static size_t curl_write_header(char *data, size_t size, size_t nmemb, void *ctx)
+{
+	php_curl       *ch  = (php_curl *) ctx;
+	php_curl_write *t   = ch->handlers->write_header;
+	size_t          length = size * nmemb;
+	TSRMLS_FETCH_FROM_CTX(ch->thread_ctx);
+
+	switch (t->method) {
+		case PHP_CURL_STDOUT:
+			/* Handle special case write when we're returning the entire transfer
+			 */
+			if (ch->handlers->write->method == PHP_CURL_RETURN && length > 0) {
+				smart_str_appendl(&ch->handlers->write->buf, data, (int) length);
+			} else {
+				PHPWRITE(data, length);
+			}
+			break;
+		case PHP_CURL_FILE:
+			return fwrite(data, size, nmemb, t->fp);
+		case PHP_CURL_USER: {
+			zval **argv[2];
+			zval  *handle = NULL;
+			zval  *zdata = NULL;
+			zval  *retval_ptr;
+			int   error;
+			zend_fcall_info fci;
+
+			MAKE_STD_ZVAL(handle);
+			MAKE_STD_ZVAL(zdata);
+
+			ZVAL_RESOURCE(handle, ch->id);
+			zend_list_addref(ch->id);
+			ZVAL_STRINGL(zdata, data, length, 1);
+
+			argv[0] = &handle;
+			argv[1] = &zdata;
+
+			fci.size = sizeof(fci);
+			fci.function_table = EG(function_table);
+			fci.function_name = t->func_name;
+			fci.symbol_table = NULL;
+			fci.object_ptr = NULL;
+			fci.retval_ptr_ptr = &retval_ptr;
+			fci.param_count = 2;
+			fci.params = argv;
+			fci.no_separation = 0;
+
+			ch->in_callback = 1;
+			error = zend_call_function(&fci, &t->fci_cache TSRMLS_CC);
+			ch->in_callback = 0;
+			if (error == FAILURE) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Could not call the CURLOPT_HEADERFUNCTION");
+				length = -1;
+			} else if (retval_ptr) {
+				if (Z_TYPE_P(retval_ptr) != IS_LONG) {
+					convert_to_long_ex(&retval_ptr);
+				}
+				length = Z_LVAL_P(retval_ptr);
+				zval_ptr_dtor(&retval_ptr);
+			}
+			zval_ptr_dtor(argv[0]);
+			zval_ptr_dtor(argv[1]);
+			break;
+		}
+
+		case PHP_CURL_IGNORE:
+			return length;
+
+		default:
+			return -1;
+	}
+
+	return length;
+}
+/* }}} */
 
 PHP_FUNCTION(jsonrpc_server_new)
 {
@@ -649,6 +882,95 @@ PHP_FUNCTION(jsonrpc_server_getresponse)
 	smart_str_free(&buf);
 
 }
+
+PHP_FUNCTION(jsonrpc_client_new)
+{
+	CURL *cp;
+	php_curl	*ch;
+	zval		*clone;
+	char		*url = NULL;
+	int		url_len = 0;
+	char *cainfo;
+
+	zval *_url;
+	zval *timeout;
+	zval *headers;
+	zval *object;
+	zval *_headers;
+
+	object = getThis();
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzz",
+		&_url, &timeout, &headers) == FAILURE)
+	{
+
+	}
+
+	MAKE_STD_ZVAL(_headers);
+	array_init(_headers);
+	add_index_string(_headers, 0, estrdup("Content-Type: application/json"), 0);
+	add_next_index_string(_headers, estrdup("Accept: application/json"), 0);
+
+	add_property_zval(object, "url", _url);
+	add_property_zval(object, "timeout", timeout);
+
+	zend_hash_merge(Z_ARRVAL_P(_headers), Z_ARRVAL_P(headers), NULL, NULL, sizeof(zval *), 1);
+	add_property_zval(object, "header", _headers);
+	
+	cp = curl_easy_init();
+	if (!cp){
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Could not initialize a new cURL handle");
+		RETURN_FALSE;
+	}
+
+	alloc_curl_handle(&ch);
+	TSRMLS_SET_CTX(ch->thread_ctx);
+
+	ch->cp = cp;
+
+	ch->handlers->write->method = PHP_CURL_STDOUT;
+	ch->handlers->write->type   = PHP_CURL_ASCII;
+	ch->handlers->read->method  = PHP_CURL_DIRECT;
+	ch->handlers->write_header->method = PHP_CURL_IGNORE;
+
+	ch->uses = 0;
+
+	MAKE_STD_ZVAL(clone);
+	ch->clone = clone;
+
+	curl_easy_setopt(ch->cp, CURLOPT_NOPROGRESS,        1);
+	curl_easy_setopt(ch->cp, CURLOPT_VERBOSE,           0);
+	curl_easy_setopt(ch->cp, CURLOPT_ERRORBUFFER,       ch->err.str);
+	curl_easy_setopt(ch->cp, CURLOPT_WRITEFUNCTION,     curl_write);
+	curl_easy_setopt(ch->cp, CURLOPT_FILE,              (void *) ch);
+	curl_easy_setopt(ch->cp, CURLOPT_READFUNCTION,      curl_read);
+	curl_easy_setopt(ch->cp, CURLOPT_INFILE,            (void *) ch);
+	curl_easy_setopt(ch->cp, CURLOPT_HEADERFUNCTION,    curl_write_header);
+	curl_easy_setopt(ch->cp, CURLOPT_WRITEHEADER,       (void *) ch);
+	curl_easy_setopt(ch->cp, CURLOPT_DNS_USE_GLOBAL_CACHE, 1);
+	curl_easy_setopt(ch->cp, CURLOPT_DNS_CACHE_TIMEOUT, 120);
+	curl_easy_setopt(ch->cp, CURLOPT_MAXREDIRS, 20); /* prevent infinite redirects */
+
+	cainfo = INI_STR("curl.cainfo");
+	if (cainfo && strlen(cainfo) > 0) {
+		curl_easy_setopt(ch->cp, CURLOPT_CAINFO, cainfo);
+	}
+
+#if defined(ZTS)
+	curl_easy_setopt(ch->cp, CURLOPT_NOSIGNAL, 1);
+#endif
+
+	if (url) {
+		if (!php_curl_option_url(ch, url, url_len)) {
+			_php_curl_close_ex(ch TSRMLS_CC);
+			RETURN_FALSE;
+		}
+	}
+
+	//add_property_resource(object, "ch", ch->id);
+}
+
+
 
 static zend_function_entry jsonrpc_server_class_functions[] = {
 	PHP_FALIAS(__construct, jsonrpc_server_new, NULL)

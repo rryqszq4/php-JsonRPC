@@ -17,6 +17,9 @@ PHP_ARG_ENABLE(jsonrpc, whether to enable jsonrpc support,
 dnl Make sure that the comment is aligned:
 [  --enable-jsonrpc           Enable jsonrpc support])
 
+PHP_ARG_WITH(curl, for curl protocol support,
+[  --with-curl[=DIR]       Include curl protocol support])
+
 if test "$PHP_JSONRPC" != "no"; then
   dnl Write more examples of tests here...
 
@@ -58,6 +61,25 @@ if test "$PHP_JSONRPC" != "no"; then
   dnl ])
   dnl
   dnl PHP_SUBST(JSONRPC_SHARED_LIBADD)
+
+  if test -r $PHP_CURL/include/curl/easy.h; then
+    CURL_DIR=$PHP_CURL
+  else
+    AC_MSG_CHECKING(for cURL in default path)
+    for i in /usr/local /usr; do
+      if test -r $i/include/curl/easy.h; then
+        CURL_DIR=$i
+        AC_MSG_RESULT(found in $i)
+        break
+      fi
+    done
+  fi
+
+  if test -z "$CURL_DIR"; then
+    AC_MSG_RESULT(not found)
+    AC_MSG_ERROR(Please reinstall the libcurl distribution -
+    easy.h should be in <curl-dir>/include/curl/)
+  fi
 
   PHP_NEW_EXTENSION(jsonrpc, jsonrpc.c, $ext_shared)
 fi
