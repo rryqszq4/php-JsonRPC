@@ -38,6 +38,8 @@ ZEND_DECLARE_MODULE_GLOBALS(jsonrpc)
 
 /* True global resources - no need for thread safety here */
 static int le_jsonrpc;
+static int le_curl;
+#define le_curl_name "cURL handle"
 static zend_class_entry *php_jsonrpc_server_entry;
 static zend_class_entry *php_jsonrpc_client_entry;
 
@@ -897,6 +899,7 @@ PHP_FUNCTION(jsonrpc_client_new)
 	zval *headers;
 	zval *object;
 	zval *_headers;
+	zval *_ch;
 
 	object = getThis();
 
@@ -967,7 +970,31 @@ PHP_FUNCTION(jsonrpc_client_new)
 		}
 	}
 
-	//add_property_resource(object, "ch", ch->id);
+	ZEND_REGISTER_RESOURCE(_ch, ch, le_curl);
+	add_property_resource(object, "ch", _ch);
+}
+
+PHP_FUNCTION(jsonrpc_client_del)
+{
+	zval		*zid;
+	php_curl	*ch;
+
+	zid = callbacks = zend_read_property(
+			php_jsonrpc_server_entry, object, "ch", sizeof("ch")-1, 0 TSRMLS_CC
+		);
+
+	ZEND_FETCH_RESOURCE(ch, php_curl *, &zid, -1, le_curl_name, le_curl);
+
+	if (ch->in_callback) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Attempt to close cURL handle from a callback");
+		return;
+	}
+
+	if (ch->uses) {
+		ch->uses--;
+	} else {
+		zend_list_delete(Z_LVAL_P(zid));
+	}
 }
 
 
@@ -986,6 +1013,7 @@ static zend_function_entry jsonrpc_server_class_functions[] = {
 
 static zend_function_entry jsonrpc_client_class_functions[] = {
 	PHP_FALIAS(__construct, jsonrpc_client_new, NULL)
+	PHP_FALIAS(__destruct, jsonrpc_client_del, NULL);
 	{NULL, NULL, NULL}
 };
 
@@ -993,6 +1021,8 @@ static zend_function_entry jsonrpc_client_class_functions[] = {
  */
 PHP_MINIT_FUNCTION(jsonrpc)
 {
+	le_curl = zend_register_list_destructors_ex(_php_curl_close, NULL, "curl", module_number);
+
 	/* If you have INI entries, uncomment these lines 
 	REGISTER_INI_ENTRIES();
 	*/
