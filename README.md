@@ -38,6 +38,7 @@ echo $server->execute();
 ?>
 ```
 
+```php
 ### Client
 
 <?php
