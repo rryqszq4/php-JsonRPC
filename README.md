@@ -38,9 +38,10 @@ echo $server->execute();
 ?>
 ```
 
-```php
 ### Client
+Example with positional parameters:
 
+```php
 <?php
 
 $client = new Jsonrpc_Client('http://localhost/server.php');
