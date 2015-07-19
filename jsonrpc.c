@@ -179,6 +179,33 @@ static zval* jr_server_get_arguments(zval *request_params, zval *method_params,
 	return retval;
 }
 
+static zval* jr_client_prepare_request(zval *procedure, zval *params)
+{
+	zval *payload;
+	long number;
+	int nb_params;
+
+	MAKE_STD_ZVAL(payload);
+	array_init(payload);
+
+	add_assoc_string(payload, "jsonrpc", "2.0", 0);
+	add_assoc_string(payload, "method", Z_STRVAL_P(procedure), 0);
+
+	if (!BG(mt_rand_is_seeded)) {
+		php_mt_srand(GENERATE_SEED() TSRMLS_CC);
+	}
+	number = (long) (php_mt_rand(TSRMLS_C) >> 1);
+	add_assoc_long(payload, "id", number);
+
+	nb_params = php_count_recursive(params, 0 TSRMLS_CC);
+	if (nb_params > 0)
+	{
+		add_assoc_zval(payload, "params", params);
+	}
+
+	return payload;
+}
+
 
 /* {{{ curl_read
  */
@@ -997,7 +1024,26 @@ PHP_FUNCTION(jsonrpc_client_del)
 	}
 }
 
+PHP_FUNCTION(jsonrpc_client_execute)
+{
+	zval *procedure;
+	zval *params;
+	zval *request;
 
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz",
+		&procedure, &params) == FAILURE)
+	{
+
+	}
+
+	request = jr_client_prepare_request(procedure, params);
+}
+
+PHP_FUNCTION(jsonrpc_client_dorequest)
+{
+	zval *payload;
+	
+}
 
 static zend_function_entry jsonrpc_server_class_functions[] = {
 	PHP_FALIAS(__construct, jsonrpc_server_new, NULL)
@@ -1013,7 +1059,9 @@ static zend_function_entry jsonrpc_server_class_functions[] = {
 
 static zend_function_entry jsonrpc_client_class_functions[] = {
 	PHP_FALIAS(__construct, jsonrpc_client_new, NULL)
-	PHP_FALIAS(__destruct, jsonrpc_client_del, NULL);
+	PHP_FALIAS(__destruct, jsonrpc_client_del, NULL)
+	PHP_FALIAS(execute, jsonrpc_client_execute, NULL)
+	PHP_FALIAS(dorequest, jsonrpc_client_dorequest, NULL)
 	{NULL, NULL, NULL}
 };
 
