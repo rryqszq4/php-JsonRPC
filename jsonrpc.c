@@ -29,6 +29,7 @@
 #include "ext/standard/php_rand.h"
 #include "SAPI.h"
 #include "ext/json/php_json.h"
+#include "ext/standard/file.h"
 #include "php_jsonrpc.h"
 
 #include <curl/curl.h>
@@ -715,11 +716,21 @@ PHP_FUNCTION(jsonrpc_server_new)
 	zval *payload, *callbacks, *classes;
 	zval *object = getThis();
 
+	ALLOC_INIT_ZVAL(payload);
+	MAKE_STD_ZVAL(callbacks);
+	MAKE_STD_ZVAL(classes);
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzz", 
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|zzz", 
 		&payload, &callbacks, &classes) == FAILURE)
 	{
 		RETURN_NULL();
+	}
+
+	if (Z_TYPE_P(payload) == IS_STRING){
+		add_property_zval(object, "payload", payload);
+	}else {
+		ZVAL_NULL(payload);
+		add_property_zval(object, "payload", payload);
 	}
 
 	if (Z_TYPE_P(callbacks) == IS_ARRAY){
@@ -728,17 +739,21 @@ PHP_FUNCTION(jsonrpc_server_new)
 		array_init(callbacks);
 		add_property_zval(object, "callbacks", callbacks);
 	}
+	
+	if (Z_TYPE_P(classes) == IS_ARRAY){
+		add_property_zval(object, "classes", classes);
+	}else {
+		array_init(classes);
+		add_property_zval(object, "classes", classes);
+	}
 
-	add_property_zval(object, "payload", payload);
-	add_property_zval(object, "classes", classes);
-
-	payload = NULL;
+	//payload = NULL;
 	payload = zend_read_property(
 			php_jsonrpc_server_entry, getThis(), "payload", sizeof("payload")-1, 0 TSRMLS_CC
 		);
 	//php_var_dump(&payload, 1 TSRMLS_CC);
 
-	php_printf("jsonrpc_server new\n");
+	//php_printf("jsonrpc_server new\n");
 }
 
 PHP_FUNCTION(jsonrpc_server_register)
@@ -802,7 +817,7 @@ PHP_FUNCTION(jsonrpc_server_execute)
 
 	}
 	if (!Z_BVAL(retval)){
-		add_assoc_long(error, "code", -32767);
+		add_assoc_long(error, "code", -32700);
 		add_assoc_string(error, "message", "Parse error", 0);
 		add_assoc_null(id,"id");
 		add_assoc_zval(data, "error", error);
@@ -869,24 +884,79 @@ getresponse:
 
 }
 
+static zval* jr_file_get_contents()
+{
+	zval *payload;
+
+	MAKE_STD_ZVAL(payload);
+
+	zend_bool use_include_path = 0;
+	php_stream *stream;
+	int len;
+	long offset = -1;
+	long maxlen = PHP_STREAM_COPY_ALL;
+	zval *zcontext = NULL;
+	php_stream_context *context = NULL;
+
+	char *contents;
+
+	
+
+	context = php_stream_context_from_zval(zcontext, 0);
+
+	stream = php_stream_open_wrapper_ex("php://input", "rb",
+				(use_include_path ? USE_PATH : 0) | ENFORCE_SAFE_MODE | REPORT_ERRORS,
+				NULL, context);
+
+	
+	if (!stream) {
+		ZVAL_NULL(payload);
+		php_stream_close(stream);
+		return payload;
+	}
+
+	if (offset > 0 && php_stream_seek(stream, offset, SEEK_SET) < 0) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed to seek to position %ld in the stream", offset);
+		php_stream_close(stream);
+		ZVAL_NULL(payload);
+		return payload;
+	}
+
+	if ((len = php_stream_copy_to_mem(stream, &contents, maxlen, 0)) > 0) {
+
+		if (PG(magic_quotes_runtime)) {
+			contents = php_addslashes(contents, len, &len, 1 TSRMLS_CC); 
+		}
+
+		ZVAL_STRINGL(payload, contents, len, 1);
+		php_stream_close(stream);
+		return payload;
+	} else if (len == 0) {
+		ZVAL_STRING(payload, "", 1);
+		php_stream_close(stream);
+		return payload;
+	} else {
+		ZVAL_NULL(payload);
+		php_stream_close(stream);
+		return payload;
+	}
+	
+}
+
 PHP_FUNCTION(jsonrpc_server_jformat)
 {
 	zval *payload, *val;
 	zval *object = getThis();
-	
-	zend_bool use_include_path = 0;
-	php_stream *stream;
-	php_stream_context *context = NULL;
-	int len;
-	long maxlen = PHP_STREAM_COPY_ALL;
-	char *contents;
 
 	payload = zend_read_property(
 			php_jsonrpc_server_entry, object, "payload", sizeof("payload")-1, 0 TSRMLS_CC
 		);
 
+	//shurrik_dump_zval(payload);
+
+
 	if (Z_TYPE_P(payload) == IS_NULL){
-		context = php_stream_context_alloc(TSRMLS_CC);
+		/*context = php_stream_context_alloc(TSRMLS_CC);
 		stream = php_stream_open_wrapper_ex("php://input", "rb",
 				(use_include_path ? USE_PATH : 0) | ENFORCE_SAFE_MODE | REPORT_ERRORS,
 				NULL, context);
@@ -894,7 +964,7 @@ PHP_FUNCTION(jsonrpc_server_jformat)
 		if ((len = php_stream_copy_to_mem(stream, &contents, maxlen, 0)) > 0) {
 
 			if (PG(magic_quotes_runtime)) {
-				contents = php_addslashes(contents, len, &len, 1 TSRMLS_CC); /* 1 = free source string */
+				contents = php_addslashes(contents, len, &len, 1 TSRMLS_CC); 
 			}
 
 			ZVAL_STRINGL(payload, contents, len, 1);
@@ -904,6 +974,11 @@ PHP_FUNCTION(jsonrpc_server_jformat)
 			ZVAL_NULL(payload);
 		}
 		php_stream_close(stream);
+		zend_update_property(php_jsonrpc_server_entry, object, "payload", sizeof(payload)-1, payload TSRMLS_CC);
+		*/
+		
+		payload = jr_file_get_contents();
+		
 		zend_update_property(php_jsonrpc_server_entry, object, "payload", sizeof(payload)-1, payload TSRMLS_CC);
 	}
 	if (Z_TYPE_P(payload) == IS_STRING){
@@ -1054,7 +1129,10 @@ PHP_FUNCTION(jsonrpc_server_execute_callback)
 	zval *robj;
 	zval *func;
 	zval *reflection;
+	
+	int func_params_num;
 	zval **func_params;
+
 	zval *method_params;
 	zval *nb_required_params;
 	zval *nb_max_params;
@@ -1076,8 +1154,30 @@ PHP_FUNCTION(jsonrpc_server_execute_callback)
 	}
 
 	MAKE_STD_ZVAL(closure_result_ptr);
+
+	func_params_num = php_count_recursive(params, 0 TSRMLS_CC);
+	func_params = emalloc(sizeof(zval *) * func_params_num);
+
+	zval              **current;
+	HashTable          *ph;
+	int i = 0;
+
+	ph = HASH_OF(params);
+	if (!ph) {
+	}
+
+	for (zend_hash_internal_pointer_reset(ph);
+		 zend_hash_get_current_data(ph, (void **) &current) == SUCCESS;
+		 zend_hash_move_forward(ph)
+	) {
+		SEPARATE_ZVAL(current);
+		func_params[i] = *current;
+
+		i++;
+	}
+
 	//shurrik_dump_zval(closure);
-	if (call_user_function(EG(function_table), NULL, closure, closure_result_ptr, 0, NULL TSRMLS_CC) == FAILURE)
+	if (call_user_function(EG(function_table), NULL, closure, closure_result_ptr, func_params_num, func_params TSRMLS_CC) == FAILURE)
 	{
 	}
 
@@ -1196,7 +1296,7 @@ PHP_FUNCTION(jsonrpc_client_new)
 	char *cainfo;
 
 	zval *_url;
-	zval *timeout;
+	zval *timeout_c;
 	zval *headers;
 	zval *object;
 	zval *_headers;
@@ -1204,8 +1304,11 @@ PHP_FUNCTION(jsonrpc_client_new)
 
 	object = getThis();
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzz",
-		&_url, &timeout, &headers) == FAILURE)
+	MAKE_STD_ZVAL(timeout_c);
+	ZVAL_LONG(timeout_c, 5);
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|zz",
+		&_url, &timeout_c, &headers) == FAILURE)
 	{
 
 	}
@@ -1216,10 +1319,21 @@ PHP_FUNCTION(jsonrpc_client_new)
 	add_next_index_string(_headers, estrdup("Accept: application/json"), 0);
 
 	add_property_zval(object, "url", _url);
-	add_property_zval(object, "timeout", timeout);
+	
+	if (Z_TYPE_P(timeout_c) == IS_LONG){
+		add_property_zval(object, "timeout", timeout_c);
+	}else {
+		ZVAL_LONG(timeout_c, 5);
+		add_property_zval(object, "timeout", timeout_c);
+	}
 
-	zend_hash_merge(Z_ARRVAL_P(_headers), Z_ARRVAL_P(headers), NULL, NULL, sizeof(zval *), 1);
-	add_property_zval(object, "headers", _headers);
+	if (Z_TYPE_P(headers) == IS_ARRAY){
+		zend_hash_merge(Z_ARRVAL_P(_headers), Z_ARRVAL_P(headers), NULL, NULL, sizeof(zval *), 1);
+		add_property_zval(object, "headers", _headers);
+	}else {
+		add_property_zval(object, "headers", _headers);
+	}
+	
 
 	cp = curl_easy_init();
 	if (!cp){
