@@ -45,7 +45,7 @@ Example with positional parameters:
 <?php
 
 $client = new Jsonrpc_Client('http://localhost/server.php');
-$result = $client->execute('addition', [3, 5]);
+$result = $client->execute('addition', array(3,5));
 
 var_dump($result);
 ```
