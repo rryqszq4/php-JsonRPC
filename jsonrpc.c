@@ -34,6 +34,9 @@
 
 #include <curl/curl.h>
 #include <curl/easy.h>
+#include <curl/multi.h>
+
+#include <sys/select.h>
 
 /* If you declare any globals in php_jsonrpc.h uncomment this:
 ZEND_DECLARE_MODULE_GLOBALS(jsonrpc)
@@ -44,6 +47,9 @@ static int le_jsonrpc;
 
 static int le_curl;
 #define le_curl_name "cURL handle"
+static int  le_curl_multi_handle;
+#define le_curl_multi_handle_name "cURL Multi Handle"
+
 #define SAVE_CURL_ERROR(__handle, __err) (__handle)->err.no = (int) __err;
 
 /* As of curl 7.11.1 this is no longer defined inside curl.h */
@@ -249,6 +255,47 @@ static zval* jr_client_prepare_request(zval *procedure, zval *params)
 	return payload;
 }
 
+
+static int php_curl_option_url(php_curl *ch, const char *url, const int len) /* {{{ */
+{
+	CURLcode error = CURLE_OK;
+#if LIBCURL_VERSION_NUM < 0x071100
+	char *copystr = NULL;
+#endif
+	TSRMLS_FETCH();
+
+	/* Disable file:// if open_basedir or safe_mode are used */
+	if ((PG(open_basedir) && *PG(open_basedir)) || PG(safe_mode)) {
+#if LIBCURL_VERSION_NUM >= 0x071304
+		error = curl_easy_setopt(ch->cp, CURLOPT_PROTOCOLS, CURLPROTO_ALL & ~CURLPROTO_FILE);
+#else
+		php_url *uri;
+
+		if (!(uri = php_url_parse_ex(url, len))) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid URL '%s'", url);
+			return 0;
+		}
+
+		if (uri->scheme && !strncasecmp("file", uri->scheme, sizeof("file"))) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Protocol 'file' disabled in cURL");
+			php_url_free(uri);
+			return 0;
+		}
+		php_url_free(uri);
+#endif
+	}
+	/* Strings passed to libcurl as 'char *' arguments, are copied by the library... NOTE: before 7.17.0 strings were not copied. */
+#if LIBCURL_VERSION_NUM >= 0x071100
+	error = curl_easy_setopt(ch->cp, CURLOPT_URL, url);
+#else
+	copystr = estrndup(url, len);
+	error = curl_easy_setopt(ch->cp, CURLOPT_URL, copystr);
+	zend_llist_add_element(&ch->to_free->str, &copystr);
+#endif
+
+	return (error == CURLE_OK ? 1 : 0);
+}
+/* }}} */
 
 /* {{{ curl_read
  */
@@ -710,6 +757,34 @@ static void alloc_curl_handle(php_curl **ch)
 	zend_llist_init(&(*ch)->to_free->post,  sizeof(struct HttpPost),   (llist_dtor_func_t) curl_free_post,   0);
 }
 /* }}} */
+
+static void _php_curlm_close_persistent(zend_rsrc_list_entry *rsrc TSRMLS_DC)
+{
+	php_curlm *mh = (php_curlm *) rsrc->ptr;
+	if (mh) {
+		zend_llist_position pos;
+		php_curl *ch;
+		zval	*pz_ch;
+
+		for(pz_ch = (zval *)zend_llist_get_first_ex(&mh->easyh, &pos); pz_ch;
+			pz_ch = (zval *)zend_llist_get_next_ex(&mh->easyh, &pos)) {
+
+			ch = (php_curl *) zend_fetch_resource(&pz_ch TSRMLS_CC, -1, le_curl_name, NULL, 1, le_curl);
+			_php_curl_verify_handlers(ch, 0 TSRMLS_CC);
+		}
+
+		curl_multi_cleanup(mh->multi);
+		zend_llist_clean(&mh->easyh);
+		efree(mh);
+		rsrc->ptr = NULL;
+	}
+}
+
+static _php_curl_multi_init()
+{
+
+}
+
 
 PHP_FUNCTION(jsonrpc_server_new)
 {
@@ -1521,18 +1596,27 @@ PHP_FUNCTION(jsonrpc_client_dorequest)
 
 	ZEND_FETCH_RESOURCE(ch, php_curl *, &zid, -1, le_curl_name, le_curl);
 
-	curl_easy_setopt(ch->cp, CURLOPT_URL, Z_STRVAL_P(url));
+	//curl_easy_setopt(ch->cp, CURLOPT_URL, Z_STRVAL_P(url));
+	if (!php_curl_option_url(ch, Z_STRVAL_P(url), Z_STRLEN_P(url)) ) {
+			_php_curl_close_ex(ch TSRMLS_CC);
+			RETVAL_FALSE;
+			return ;
+	}
 	curl_easy_setopt(ch->cp, CURLOPT_HEADER, 0);
 	//curl_easy_setopt(ch->cp, CURLOPT_RETURNTRANSFER, 1);
 	ch->handlers->write->method = PHP_CURL_RETURN;
 
+	convert_to_long_ex(&timeout);
 	curl_easy_setopt(ch->cp, CURLOPT_CONNECTTIMEOUT, Z_LVAL_P(timeout));
 	curl_easy_setopt(ch->cp, CURLOPT_USERAGENT, "JSON-RPC PHP Client");
 	curl_easy_setopt(ch->cp, CURLOPT_HTTPHEADER, slist);
 	curl_easy_setopt(ch->cp, CURLOPT_FOLLOWLOCATION, 0);
 	curl_easy_setopt(ch->cp, CURLOPT_CUSTOMREQUEST, "POST");
 	curl_easy_setopt(ch->cp, CURLOPT_SSL_VERIFYPEER, 1);
+
+	convert_to_string_ex(&payload);
 	curl_easy_setopt(ch->cp, CURLOPT_POSTFIELDS, Z_STRVAL_P(payload));
+	curl_easy_setopt(ch->cp, CURLOPT_POSTFIELDSIZE, Z_STRLEN_P(payload));
 
 	/* curl_exec */
 	zval *http_body;
@@ -1629,7 +1713,7 @@ static zend_function_entry jsonrpc_client_class_functions[] = {
 PHP_MINIT_FUNCTION(jsonrpc)
 {
 	le_curl = zend_register_list_destructors_ex(_php_curl_close, NULL, "curl", module_number);
-
+	//le_curl_multi_handle = zend_register_list_destructors_ex(NULL, _php_curlm_close_persistent, "curl_multi", module_number);
 	/* If you have INI entries, uncomment these lines 
 	REGISTER_INI_ENTRIES();
 	*/
