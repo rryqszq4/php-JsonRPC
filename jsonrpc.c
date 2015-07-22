@@ -255,6 +255,65 @@ static zval* jr_client_prepare_request(zval *procedure, zval *params)
 	return payload;
 }
 
+static zval* jr_file_get_contents()
+{
+	zval *payload;
+
+	MAKE_STD_ZVAL(payload);
+
+	zend_bool use_include_path = 0;
+	php_stream *stream;
+	int len;
+	long offset = -1;
+	long maxlen = PHP_STREAM_COPY_ALL;
+	zval *zcontext = NULL;
+	php_stream_context *context = NULL;
+
+	char *contents;
+
+	
+
+	context = php_stream_context_from_zval(zcontext, 0);
+
+	stream = php_stream_open_wrapper_ex("php://input", "rb",
+				(use_include_path ? USE_PATH : 0) | ENFORCE_SAFE_MODE | REPORT_ERRORS,
+				NULL, context);
+
+	
+	if (!stream) {
+		ZVAL_NULL(payload);
+		php_stream_close(stream);
+		return payload;
+	}
+
+	if (offset > 0 && php_stream_seek(stream, offset, SEEK_SET) < 0) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed to seek to position %ld in the stream", offset);
+		php_stream_close(stream);
+		ZVAL_NULL(payload);
+		return payload;
+	}
+
+	if ((len = php_stream_copy_to_mem(stream, &contents, maxlen, 0)) > 0) {
+
+		if (PG(magic_quotes_runtime)) {
+			contents = php_addslashes(contents, len, &len, 1 TSRMLS_CC); 
+		}
+
+		ZVAL_STRINGL(payload, contents, len, 1);
+		php_stream_close(stream);
+		return payload;
+	} else if (len == 0) {
+		ZVAL_STRING(payload, "", 1);
+		php_stream_close(stream);
+		return payload;
+	} else {
+		ZVAL_NULL(payload);
+		php_stream_close(stream);
+		return payload;
+	}
+	
+}
+
 
 static int php_curl_option_url(php_curl *ch, const char *url, const int len) /* {{{ */
 {
@@ -833,30 +892,59 @@ PHP_FUNCTION(jsonrpc_server_new)
 
 PHP_FUNCTION(jsonrpc_server_register)
 {
-	zval *closure, *val;
+	zval *closure=NULL;
+	zval *val;
 	zval *name;
 	zval *callbacks;
+	char *lcname;
 	zend_function *fptr;
+	char *name_str;
+	int name_len;
 
 	zval *object = getThis();
 
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz", 
-		&name, &closure) == SUCCESS)
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zs", 
+		&name, &name_str, &name_len) == FAILURE)
 	{
-		fptr = (zend_function*)zend_get_closure_method_def(closure TSRMLS_CC);
-		Z_ADDREF_P(closure);
+		
 	}
 
+	//if (Z_TYPE_P(closure) == IS_OBJECT){
+	//	fptr = (zend_function*)zend_get_closure_method_def(closure TSRMLS_CC);
+	//	Z_ADDREF_P(closure);
+	//}else if (Z_TYPE_P(closure) == IS_STRING){
+		char *nsname;
+		//name_str = Z_STRVAL_P(closure);
+		//name_len = Z_STRLEN_p(closure);
+
+
+		lcname = zend_str_tolower_dup(name_str, name_len);
+
+		/* Ignore leading "\" */
+		nsname = lcname;
+		if (lcname[0] == '\\') {
+			nsname = &lcname[1];
+			name_len--;
+		}
+		
+		if (zend_hash_find(EG(function_table), nsname, name_len + 1, (void **)&fptr) == FAILURE) {
+			efree(lcname);
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, 
+				"Function %s() does not exist", name_str);
+			return;
+		}
+		efree(lcname);
+	//}
 
 	callbacks = zend_read_property(
-			php_jsonrpc_server_entry, getThis(), "callbacks", sizeof("callbacks")-1, 0 TSRMLS_CC
-		);
-
+		php_jsonrpc_server_entry, getThis(), "callbacks", sizeof("callbacks")-1, 0 TSRMLS_CC
+	);
 
 	MAKE_STD_ZVAL(val);
-	zend_create_closure(val, fptr TSRMLS_CC);
 
+	zend_create_closure(val, fptr TSRMLS_CC);
+	//shurrik_dump_zval(val);
 	add_assoc_zval(callbacks, Z_STRVAL_P(name), val);
 
 
@@ -957,65 +1045,6 @@ getresponse:
 	ZVAL_STRINGL(return_value, Z_STRVAL(retval), Z_STRLEN(retval), 1);
 	return ;
 
-}
-
-static zval* jr_file_get_contents()
-{
-	zval *payload;
-
-	MAKE_STD_ZVAL(payload);
-
-	zend_bool use_include_path = 0;
-	php_stream *stream;
-	int len;
-	long offset = -1;
-	long maxlen = PHP_STREAM_COPY_ALL;
-	zval *zcontext = NULL;
-	php_stream_context *context = NULL;
-
-	char *contents;
-
-	
-
-	context = php_stream_context_from_zval(zcontext, 0);
-
-	stream = php_stream_open_wrapper_ex("php://input", "rb",
-				(use_include_path ? USE_PATH : 0) | ENFORCE_SAFE_MODE | REPORT_ERRORS,
-				NULL, context);
-
-	
-	if (!stream) {
-		ZVAL_NULL(payload);
-		php_stream_close(stream);
-		return payload;
-	}
-
-	if (offset > 0 && php_stream_seek(stream, offset, SEEK_SET) < 0) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed to seek to position %ld in the stream", offset);
-		php_stream_close(stream);
-		ZVAL_NULL(payload);
-		return payload;
-	}
-
-	if ((len = php_stream_copy_to_mem(stream, &contents, maxlen, 0)) > 0) {
-
-		if (PG(magic_quotes_runtime)) {
-			contents = php_addslashes(contents, len, &len, 1 TSRMLS_CC); 
-		}
-
-		ZVAL_STRINGL(payload, contents, len, 1);
-		php_stream_close(stream);
-		return payload;
-	} else if (len == 0) {
-		ZVAL_STRING(payload, "", 1);
-		php_stream_close(stream);
-		return payload;
-	} else {
-		ZVAL_NULL(payload);
-		php_stream_close(stream);
-		return payload;
-	}
-	
 }
 
 PHP_FUNCTION(jsonrpc_server_jformat)
@@ -1223,7 +1252,7 @@ PHP_FUNCTION(jsonrpc_server_execute_callback)
 
 	if (!closure || !zend_is_callable(closure, 0, NULL TSRMLS_CC))
 	{
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "closeure is expected to be a valid callback");
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "closeure is not expected to be a valid callback");
 		RETVAL_FALSE;
 		return;
 	}
