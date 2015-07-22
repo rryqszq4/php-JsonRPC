@@ -904,19 +904,19 @@ PHP_FUNCTION(jsonrpc_server_register)
 	zval *object = getThis();
 
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zs", 
-		&name, &name_str, &name_len) == FAILURE)
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz", 
+		&name, &closure) == FAILURE)
 	{
 		
 	}
 
-	//if (Z_TYPE_P(closure) == IS_OBJECT){
-	//	fptr = (zend_function*)zend_get_closure_method_def(closure TSRMLS_CC);
-	//	Z_ADDREF_P(closure);
-	//}else if (Z_TYPE_P(closure) == IS_STRING){
+	if (Z_TYPE_P(closure) == IS_OBJECT){
+		fptr = (zend_function*)zend_get_closure_method_def(closure TSRMLS_CC);
+		Z_ADDREF_P(closure);
+	}else if (Z_TYPE_P(closure) == IS_STRING){
 		char *nsname;
-		//name_str = Z_STRVAL_P(closure);
-		//name_len = Z_STRLEN_p(closure);
+		name_str = Z_STRVAL_P(closure);
+		name_len = Z_STRLEN_P(closure);
 
 
 		lcname = zend_str_tolower_dup(name_str, name_len);
@@ -935,7 +935,7 @@ PHP_FUNCTION(jsonrpc_server_register)
 			return;
 		}
 		efree(lcname);
-	//}
+	}
 
 	callbacks = zend_read_property(
 		php_jsonrpc_server_entry, getThis(), "callbacks", sizeof("callbacks")-1, 0 TSRMLS_CC
