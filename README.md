@@ -37,6 +37,42 @@ echo $server->execute();
 
 ?>
 ```
+or
+
+```php
+<?php
+
+$server = new Jsonrpc_Server();
+
+$add = function($a, $b){
+	return $a + $b;
+}
+
+$server->register('addition', $add);
+
+echo $server->execute();
+
+?>
+```
+
+or
+
+```php
+<?php
+
+$server = new Jsonrpc_Server();
+
+function add($a, $b){
+	return $a + $b;
+}
+
+$server->register('addition', 'add');
+
+echo $server->execute();
+
+?>
+```
+
 
 ### Client
 Example with positional parameters:
