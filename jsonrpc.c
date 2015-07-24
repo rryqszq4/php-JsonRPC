@@ -938,7 +938,7 @@ PHP_FUNCTION(jsonrpc_server_register)
 	}
 
 	callbacks = zend_read_property(
-		php_jsonrpc_server_entry, getThis(), "callbacks", sizeof("callbacks")-1, 0 TSRMLS_CC
+		php_jsonrpc_server_entry, object, "callbacks", sizeof("callbacks")-1, 0 TSRMLS_CC
 	);
 
 	MAKE_STD_ZVAL(val);
@@ -947,9 +947,39 @@ PHP_FUNCTION(jsonrpc_server_register)
 	//shurrik_dump_zval(val);
 	add_assoc_zval(callbacks, Z_STRVAL_P(name), val);
 
+	zend_update_property(php_jsonrpc_server_entry, object, "callbacks", sizeof(callbacks)-1, callbacks TSRMLS_CC);
 
 	RETURN_ZVAL(object,1,0);
 
+}
+
+PHP_FUNCTION(jsonrpc_server_bind)
+{
+	zval *procedure, *classes, *method;
+	zval *val;
+	zval *object;
+
+	object = getThis();
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzz", 
+		&procedure, &classes, &method) == FAILURE)
+	{
+		
+	}
+
+	classes = zend_read_property(
+		php_jsonrpc_server_entry, object, "classes", sizeof("classes")-1, 0 TSRMLS_CC
+	);
+
+	array_init(val);
+	add_assoc_string(val, "class", Z_STRVAL_P(classes), 0);
+	add_assoc_string(val, "method", Z_STRVAL_P(method), 0);
+
+	add_assoc_zval(classes, Z_STRVAL_P(procedure), val);
+
+	zend_update_property(php_jsonrpc_server_entry, object, "classes", sizeof(classes)-1, classes TSRMLS_CC);
+
+	RETURN_ZVAL(object, 1, 0);
 }
 
 PHP_FUNCTION(jsonrpc_server_execute)
@@ -1720,6 +1750,7 @@ doresponse:
 static zend_function_entry jsonrpc_server_class_functions[] = {
 	PHP_FALIAS(__construct, jsonrpc_server_new, NULL)
 	PHP_FALIAS(register, jsonrpc_server_register, NULL)
+	PHP_FALIAS(bind, jsonrpc_server_bind, NULL)
 	PHP_FALIAS(execute, jsonrpc_server_execute, NULL)
 	PHP_FALIAS(jsonformat, jsonrpc_server_jformat, NULL)
 	PHP_FALIAS(rpcformat, jsonrpc_server_rformat, NULL)
