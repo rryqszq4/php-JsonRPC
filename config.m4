@@ -81,5 +81,9 @@ if test "$PHP_JSONRPC" != "no"; then
     easy.h should be in <curl-dir>/include/curl/)
   fi
 
+  PHP_ADD_INCLUDE($CURL_DIR/include)
+  PHP_EVAL_LIBLINE($CURL_LIBS, YAR_SHARED_LIBADD)
+  PHP_ADD_LIBRARY_WITH_PATH(curl, $CURL_DIR/$PHP_LIBDIR, YAR_SHARED_LIBADD)
+
   PHP_NEW_EXTENSION(jsonrpc, jsonrpc.c, $ext_shared)
 fi
