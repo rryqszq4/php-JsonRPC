@@ -20,6 +20,18 @@
 
 #include "jsr_curl.h"
 
+void *
+jsr_curl_global_new()
+{
+    curl_global_init(JSR_CURL_GLOBAL_DEFAULT);
+}
+
+void *
+jsr_curl_global_destroy()
+{
+    curl_global_cleanup();
+}
+
 jsr_curl_t *
 jsr_curl_new()
 {
@@ -28,6 +40,7 @@ jsr_curl_new()
         return NULL;
 
     jsr_curl->curl_handle = curl_easy_init();
+    jsr_curl->multi_handle = curl_multi_init();
 
     return jsr_curl;
 }
@@ -37,10 +50,17 @@ jsr_curl_destroy(jsr_curl_t **self_p)
 {
     if (*self_p){
         jsr_curl_t *self = *self_p;
-        curl_easy_clean(&self->curl_handle);
+        curl_multi_cleanup(&self->multi_handle);
+        curl_easy_cleanup(&self->curl_handle);
         free(self);
         *self_p = NULL;
     }
+}
+
+void *
+jsr_curl_post()
+{
+
 }
 
 /*

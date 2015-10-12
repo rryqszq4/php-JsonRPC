@@ -46,10 +46,15 @@ struct _jsr_curl_t {
 #define JSR_CURL_GLOBAL_SSL       CURL_GLOBAL_SSL;
 #define JSR_CURL_GLOBAL_WIN32     CURL_GLOBAL_WIN32;
 #define JSR_CURL_GLOBAL_NOTHING   CURL_GLOBAL_NOTHING;
+#define JSR_CURL_GLOBAL_DEFAULT   CURL_GLOBAL_DEFAULT
+
+void *jsr_curl_global_new(void);
+void *jsr_curl_global_destroy(void);
 
 jsr_curl_t *jsr_curl_new(void);
-//void *jsr_curl_setopt();
 void *jsr_curl_destroy(jsr_curl_t **self_p);
+
+void *jsr_curl_post();
 
 #endif
 
