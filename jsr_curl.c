@@ -18,6 +18,31 @@
 
 /* $Id$ */
 
+#include "jsr_curl.h"
+
+jsr_curl_t *
+jsr_curl_new()
+{
+    jsr_curl_t *jsr_curl = (jsr_curl_t *)malloc(sizeof(jsr_curl_t));
+    if (!jsr_curl)
+        return NULL;
+
+    jsr_curl->curl_handle = curl_easy_init();
+
+    return jsr_curl;
+}
+
+void *
+jsr_curl_destroy(jsr_curl_t **self_p)
+{
+    if (*self_p){
+        jsr_curl_t *self = *self_p;
+        curl_easy_clean(&self->curl_handle);
+        free(self);
+        *self_p = NULL;
+    }
+}
+
 /*
  * Local variables:
  * tab-width: 4
