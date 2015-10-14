@@ -17,83 +17,50 @@
 */
 
 /* $Id$ */
-#include "jsr_epoll.h"
 
-jsr_epoll_t *
-jsr_epoll_init()
-{
-    jsr_epoll_t *self = (jsr_epoll_t *)malloc(sizeof(jsr_epoll_t));
+#ifndef JSR_LIST_H
+#define JSR_LIST_H
 
-    self->epoll_fd = epoll_create(1024);
+typedef struct _jsr_node_t {
+    struct _jsr_node_t *next;
+    void *item;
+} jsr_node_t;
 
-    return self;
-}
+typedef struct _jsr_list_t jsr_list_t;
 
-int
-jsr_epoll_add_fd(jsr_epoll_t *self, int fd)
-{
-    struct epoll_event ev;
+struct _jsr_list_t {
+    jsr_node_t *head;
+    jsr_node_t *tail;
+    jsr_node_t *cursor;
+    size_t size;
+    int autofree;
+};
 
-    ev.events = 0;
-    ev.data.fd = fd;
+jsr_list_t *jsr_list_new(void);
+void jsr_list_destroy(jsr_list_t **self_p);
 
-    if (epoll_ctl(self->epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1)
-        return -1;
+void *jsr_list_first(jsr_list_t *self);
+void *jsr_list_next(jsr_list_t *self);
+void *jsr_list_last(jsr_list_t *self);
 
-    return 0;
-}
+void *jsr_list_head(jsr_list_t *self);
+void *jsr_list_tail(jsr_list_t *self);
+void *jsr_list_item(jsr_list_t *self);
 
-int 
-jsr_epoll_del_fd(jsr_epoll_t *self, int fd)
-{
-    if (epoll_ctl(self->epoll_fd, EPOLL_CTL_DEL, fd, NULL) ==-1)
-        return -1;
+int jsr_list_append(jsr_list_t *self, void *item);
+int jsr_list_push(jsr_list_t *self, void *item);
+void *jsr_list_pop(jsr_list_t *self);
+void jsr_list_remove(jsr_list_t *self, void *item);
 
-    return 0;
-}
+int jsr_list_exists(jsr_list_t *self, void *item);
 
-int 
-jsr_epoll_set_in(jsr_epoll_t *self, int fd)
-{
-    struct epoll_event ev;
+jsr_list_t *jsr_list_dup(jsr_list_t *self);
 
-    ev.events |= EPOLLIN;
-    ev.data.fd = fd;
+void jsr_list_purge(jsr_list_t *self);
 
-    if (epoll_ctl(self->epoll_fd, EPOLL_CTL_MOD, fd, &ev) == -1)
-        return -1;
+size_t jsr_list_size(jsr_list_t *self);
 
-    return 0; 
-}
-
-int
-jsr_epoll_set_out(jsr_epoll_t *self, int fd)
-{
-    struct epoll_event ev;
-
-    ev.events |= EPOLLOUT;
-    ev.data.fd = fd;
-
-    if (epoll_ctl(self->epoll_fd, EPOLL_CTL_MOD, fd, &ev) == -1)
-        return -1;
-
-    return 0;
-}
-
-void
-jsr_epoll_loop(jsr_epoll_t *self, int timeout)
-{
-    int res;
-    
-    while (1){
-        res = epoll_wait(self->epoll_fd, self->events, JSR_MAX_EVENTS, timeout)
-        if (res == -1 && errno == EINTR)
-            continue;
-        break;
-    }
-}
-
-
+#endif
 
 /*
  * Local variables:

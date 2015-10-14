@@ -33,7 +33,7 @@ struct _jsr_epoll_t
     struct epoll_event events [JSR_MAX_EVENTS];
 };
 
-void jsr_epoll_init();
+jsr_epoll_t *jsr_epoll_init();
 
 int jsr_epoll_add_fd(jsr_epoll_t *self, int fd);
 
