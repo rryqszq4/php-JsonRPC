@@ -20,6 +20,75 @@
 
 #include "jsr_list.h"
 
+jsr_list_t *
+jsr_list_new(void)
+{
+    jsr_list_t *self = (jsr_list_t *)malloc(sizeof(jsr_list_t));
+    return self;
+}
+
+void 
+jsr_list_destroy(jsr_list_t **self_p)
+{
+    if (*self_p){
+        jsr_list_t *self = *self_p;
+        jsr_list_purge(self);
+        free(self);
+        *self_p = NULL;
+    }
+}
+
+void *
+jsr_list_first(jsr_list_t *self)
+{
+    self->cursor = self->head;
+    if (self->cursor)
+        return self->cursor->item;
+    else
+        return NULL;
+}
+
+void *
+jsr_list_next(jsr_list_t *self)
+{
+    if (self->cursor)
+        self->cursor = self->cursor->next;
+    else
+        self->cursor = self->head;
+
+    if (self->cursor)
+        return self->cursor->item;
+    else
+        return NULL;
+}
+
+void *
+jsr_list_last(jsr_list_t *self)
+{
+    self->cursor = self->tail;
+    if (self->cursor)
+        return self->cursor->item;
+    else
+        return NULL;
+}
+
+void *jsr_list_head(jsr_list_t *self);
+void *jsr_list_tail(jsr_list_t *self);
+void *jsr_list_item(jsr_list_t *self);
+
+int jsr_list_append(jsr_list_t *self, void *item);
+int jsr_list_push(jsr_list_t *self, void *item);
+void *jsr_list_pop(jsr_list_t *self);
+void jsr_list_remove(jsr_list_t *self, void *item);
+
+int jsr_list_exists(jsr_list_t *self, void *item);
+
+jsr_list_t *jsr_list_dup(jsr_list_t *self);
+
+void jsr_list_purge(jsr_list_t *self);
+
+size_t jsr_list_size(jsr_list_t *self);
+
 /*
  * Local variables:
  * tab-width: 4
