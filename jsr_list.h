@@ -21,6 +21,9 @@
 #ifndef JSR_LIST_H
 #define JSR_LIST_H
 
+#include <stdlib.h>
+#include <string.h>
+
 typedef struct _jsr_node_t {
     struct _jsr_node_t *next;
     void *item;
@@ -34,6 +37,7 @@ struct _jsr_list_t {
     jsr_node_t *cursor;
     size_t size;
     int autofree;
+    int (*compare_fn)(void *item1, void *item2);
 };
 
 jsr_list_t *jsr_list_new(void);

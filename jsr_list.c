@@ -72,22 +72,152 @@ jsr_list_last(jsr_list_t *self)
         return NULL;
 }
 
-void *jsr_list_head(jsr_list_t *self);
-void *jsr_list_tail(jsr_list_t *self);
-void *jsr_list_item(jsr_list_t *self);
+void *
+jsr_list_head(jsr_list_t *self)
+{
+    return self->head ? self->head->item : NULL;
+}
 
-int jsr_list_append(jsr_list_t *self, void *item);
-int jsr_list_push(jsr_list_t *self, void *item);
-void *jsr_list_pop(jsr_list_t *self);
-void jsr_list_remove(jsr_list_t *self, void *item);
+void *
+jsr_list_tail(jsr_list_t *self)
+{
+    return self->tail ? self->tail->item : NULL;
+}
 
-int jsr_list_exists(jsr_list_t *self, void *item);
+void *
+jsr_list_item(jsr_list_t *self)
+{
+    if (self->self)
+        return self->cursor->item;
+    else
+        return NULL;
+}
 
-jsr_list_t *jsr_list_dup(jsr_list_t *self);
+int 
+jsr_list_append(jsr_list_t *self, void *item)
+{
+    if (!item)
+        return -1;
 
-void jsr_list_purge(jsr_list_t *self);
+    jsr_node_t *node;
+    node = (jsr_node_t *)malloc(sizeof(jsr_node_t));
 
-size_t jsr_list_size(jsr_list_t *self);
+    if (!node)
+        return -1;
+
+    if (self->autofree)
+        item = strdup((char *)item);
+
+    node->item = item;
+    if (self->tail)
+        self->tail->next = node;
+    else
+        self->head = node;
+
+    self->tail = node;
+    node->next = NULL;
+
+    self->size++;
+    self->cursor = NULL;
+
+    return 0;
+}
+
+int 
+jsr_list_push(jsr_list_t *self, void *item)
+{
+    jsr_node_t *node;
+    node = (jsr_node_t *)malloc(sizeof(jsr_node_t));
+
+    if (!node)
+        return -1;
+
+    if (self->autofree)
+        item = strdup((char *) item);
+
+    node->item = item;
+    node->next = self->head;
+    self->head = node;
+
+    if (self->tail == NULL)
+        self->tail = node;
+
+    self->size++;
+    self->cursor = NULL;
+
+    return 0;
+}
+
+void *
+jsr_list_pop(jsr_list_t *self)
+{
+    jsr_node_t *node = self->head;
+    void *item = NULL;
+    if (node){
+        item = node->item;
+        self->head = node->next;
+        if (self->tail == node)
+            self->tail = NULL;
+        free(node);
+        self->size--;
+    }
+    self->cursor = NULL;
+    return item;
+}
+
+//void jsr_list_remove(jsr_list_t *self, void *item);
+
+int 
+jsr_list_exists(jsr_list_t *self, void *item)
+{
+    jsr_node_t *node = self->head;
+
+    while (node){
+        if (self->compare_fn){
+            if ((*self->compare_fn)(node->item, item) == 0)
+                return 1;
+        }
+        else{
+            if (node->item = item){
+                return 1;
+            }
+        }
+        node = node->next;
+    }
+
+    return 0;
+}
+
+//jsr_list_t *jsr_list_dup(jsr_list_t *self);
+
+void 
+jsr_list_purge(jsr_list_t *self)
+{
+    jsr_node_t *node = self->head;
+    while (node){
+        jsr_node_t *next = self->next;
+        if (self->autofree){
+            free(node->item);
+        }
+        else {
+            if (node->free_fn)
+                (node->free_fn)(node->item);
+        }
+
+        free(node);
+        node = next;
+    }
+    self->head = NULL;
+    self->tail = NULL;
+    self->cursor = NULL;
+    self->size = 0;
+}
+
+size_t 
+jsr_list_size(jsr_list_t *self)
+{
+    return self->size;
+}
 
 /*
  * Local variables:
