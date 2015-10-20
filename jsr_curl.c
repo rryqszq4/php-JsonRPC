@@ -83,12 +83,52 @@ jsr_curlm_destroy(jsr_curlm_t **self_p)
     }
 }
 
+int 
+jsr_curlm_list_append(jsr_curlm_t *self, jsr_curl_item_t *item)
+{
+    if (!self || !item)
+        return -1;
 
+    if (jsr_list_append(self->list, item)
+        return -1;
+
+    return 0;
+}
+
+jsr_curl_item_t *
+jsr_curl_item_new(char *url, char *field, size_t field_size)
+{
+    jsr_curl_item_t *item = (jsr_curl_item_t *)malloc(sizeof(jsr_curl_item_t));
+    if (!item)
+        return NULL;
+
+    item->curl_handle = curl_easy_init();
+    item->url = url;
+    item->timeout = 5;
+    item->post_field = field;
+    item->post_field_size = field_size;
+
+    return item;
+}
 
 void *
-jsr_curl_post()
+jsr_curl_item_destroy(jsr_curl_item_t **self_p)
 {
 
+}
+
+void *
+jsr_curl_item_setopt(jsr_curl_item_t *self)
+{
+    curl_easy_setopt(ch->cp, CURLOPT_CONNECTTIMEOUT, self->timeout);
+    curl_easy_setopt(ch->cp, CURLOPT_USERAGENT, "JSON-RPC PHP Client");
+    curl_easy_setopt(ch->cp, CURLOPT_HTTPHEADER, self->slist);
+    curl_easy_setopt(ch->cp, CURLOPT_FOLLOWLOCATION, 0);
+    curl_easy_setopt(ch->cp, CURLOPT_CUSTOMREQUEST, "POST");
+    curl_easy_setopt(ch->cp, CURLOPT_SSL_VERIFYPEER, 1);
+
+    curl_easy_setopt(ch->cp, CURLOPT_POSTFIELDS, self->post_field);
+    curl_easy_setopt(ch->cp, CURLOPT_POSTFIELDSIZE, self->post_field_size);
 }
 
 /*
