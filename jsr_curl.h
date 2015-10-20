@@ -29,7 +29,11 @@
 #include <curl/easy.h>
 #include <curl/multi.h>
 
+#include "jsr_list.h"
+
 typedef struct _jsr_curl_t jsr_curl_t;
+typedef struct _jsr_curlm_t jsr_curlm_t;
+typedef struct _jsr_curl_item_t jsr_curl_item_t;
 
 struct _jsr_curl_t {
       CURL      *curl_handle;
@@ -37,7 +41,20 @@ struct _jsr_curl_t {
       CURLcode  res; 
 
       FILE *fp;
-      struct curl_slist *headers; 
+      struct curl_slist *headers;
+};
+
+struct _jsr_curlm_t
+{
+    CURLM *multi_handle;
+    jsr_list_t *list;
+};
+
+struct _jsr_curl_item_t {
+    CURL    *curl_handle;
+    char    *url;
+    FILE    *fp;
+    struct curl_slist *headers;
 };
 
 #define jsr_curl_setopt curl_easy_set_opt;
@@ -53,6 +70,14 @@ void *jsr_curl_global_destroy(void);
 
 jsr_curl_t *jsr_curl_new(void);
 void *jsr_curl_destroy(jsr_curl_t **self_p);
+
+jsr_curlm_t *jsr_curlm_new(void);
+void *jsr_curlm_destroy(jsr_curlm_t **self_p);
+int jsr_curlm_list_append(jsr_curlm_t *self, jsr_curl_item_t *item);
+int jsr_curlm_list_remove(jsr_curlm_t *self, jsr_curl_item_t *item);
+
+jsr_curl_item_t *jsr_curl_item_new(void);
+void *jsr_curl_item_destroy(jsr_curl_item_t **self_p);
 
 void *jsr_curl_post();
 

@@ -27,6 +27,7 @@
 typedef struct _jsr_node_t {
     struct _jsr_node_t *next;
     void *item;
+    void (*free_fn)(void *item);
 } jsr_node_t;
 
 typedef struct _jsr_list_t jsr_list_t;

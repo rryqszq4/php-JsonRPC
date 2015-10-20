@@ -57,6 +57,34 @@ jsr_curl_destroy(jsr_curl_t **self_p)
     }
 }
 
+jsr_curlm_t *
+jsr_curlm_new(void)
+{
+    jsr_curlm_t *jsr_curlm = (jsr_curlm_t *)malloc(sizeof(jsr_curlm_t));
+    if (!curlm)
+        return NULL;
+
+    jsr_curlm->multi_handle = curl_multi_init();
+    jsr_curlm->list = jsr_list_new();
+
+    return jsr_curlm;
+
+}
+
+void *
+jsr_curlm_destroy(jsr_curlm_t **self_p)
+{
+    if (*self_p){
+        jsr_curlm_t *self = *self_p;
+        curl_multi_cleanup(&self->multi_handle);
+        jsr_list_destroy(&self->list);
+        free(self);
+        *self_p = NULL;
+    }
+}
+
+
+
 void *
 jsr_curl_post()
 {
