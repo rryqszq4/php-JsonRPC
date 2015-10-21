@@ -20,6 +20,7 @@
 #ifndef JSR_EPOLL_H
 #define JSR_EPOLL_H
 
+#include <stdlib.h>
 #include <sys/epoll.h>
 #include <errno.h>
 

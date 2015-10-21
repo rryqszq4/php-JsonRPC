@@ -29,6 +29,9 @@
 #include <curl/easy.h>
 #include <curl/multi.h>
 
+#include <sys/time.h>
+#include <unistd.h>
+
 #include "jsr_list.h"
 
 typedef struct _jsr_curl_t jsr_curl_t;
@@ -57,9 +60,12 @@ struct _jsr_curl_item_t {
 
     struct curl_slist *slist;
     char    *post_field;
-    size_t  post_file_size;
+    size_t  post_field_size;
     FILE    *fp;
 };
+
+typedef char bool;
+#define TRUE 1
 
 #define jsr_curl_setopt curl_easy_set_opt;
 
@@ -79,10 +85,10 @@ jsr_curlm_t *jsr_curlm_new(void);
 void *jsr_curlm_destroy(jsr_curlm_t **self_p);
 int jsr_curlm_list_append(jsr_curlm_t *self, jsr_curl_item_t *item);
 int jsr_curlm_list_remove(jsr_curlm_t *self, jsr_curl_item_t *item);
+void *jsr_curlm_post(jsr_curlm_t *self);
 
 jsr_curl_item_t *jsr_curl_item_new(char *url, char *field, size_t field_size);
 void *jsr_curl_item_destroy(jsr_curl_item_t **self_p);
-
 void *jsr_curl_item_setopt(jsr_curl_item_t *self);
 
 #endif

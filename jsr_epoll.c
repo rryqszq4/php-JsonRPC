@@ -86,7 +86,7 @@ jsr_epoll_loop(jsr_epoll_t *self, int timeout)
     int res;
     
     while (1){
-        res = epoll_wait(self->epoll_fd, self->events, JSR_MAX_EVENTS, timeout)
+        res = epoll_wait(self->epoll_fd, self->events, JSR_MAX_EVENTS, timeout);
         if (res == -1 && errno == EINTR)
             continue;
         break;
