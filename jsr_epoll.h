@@ -44,7 +44,9 @@ int jsr_epoll_set_in(jsr_epoll_t *self, int fd);
 
 int jsr_epoll_set_out(jsr_epoll_t *self, int fd);
 
-void jsr_epoll_loop(jsr_epoll_t *self, int timeout);
+int jsr_epoll_loop(jsr_epoll_t *self, int timeout);
+
+void jsr_epoll_destroy(jsr_epoll_t **self_p);
 
 #endif
 

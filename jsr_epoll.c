@@ -80,7 +80,7 @@ jsr_epoll_set_out(jsr_epoll_t *self, int fd)
     return 0;
 }
 
-void
+int
 jsr_epoll_loop(jsr_epoll_t *self, int timeout)
 {
     int res;
@@ -90,6 +90,20 @@ jsr_epoll_loop(jsr_epoll_t *self, int timeout)
         if (res == -1 && errno == EINTR)
             continue;
         break;
+    }
+
+    return res;
+}
+
+void 
+jsr_epoll_destroy(jsr_epoll_t **self_p)
+{
+    if (*self_p)
+    {
+        jsr_epoll_t *self = *self_p;
+        close(self->epoll_fd);
+        free(self);
+        *self_p = NULL;
     }
 }
 
