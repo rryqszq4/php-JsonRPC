@@ -80,7 +80,7 @@ ZEND_BEGIN_ARG_INFO_EX(jsonrpc_server_getresponse_arginfo, 0, 0, 2)
 ZEND_END_ARG_INFO()
 /* }}} */
 
-PHP_FUNCTION(jsonrpc_server_new)
+PHP_METHOD(jsonrpc_server, __construct)
 {
   zval *payload, *callbacks, *classes;
   zval *object = getThis();
@@ -125,7 +125,7 @@ PHP_FUNCTION(jsonrpc_server_new)
   //php_printf("jsonrpc_server new\n");
 }
 
-PHP_FUNCTION(jsonrpc_server_register)
+PHP_METHOD(jsonrpc_server, register)
 {
   zval *closure=NULL;
   zval *val;
@@ -188,7 +188,7 @@ PHP_FUNCTION(jsonrpc_server_register)
 
 }
 
-PHP_FUNCTION(jsonrpc_server_bind)
+PHP_METHOD(jsonrpc_server, bind)
 {
   zval *procedure, *classes, *method;
   zval *val;
@@ -217,7 +217,7 @@ PHP_FUNCTION(jsonrpc_server_bind)
   RETURN_ZVAL(object, 1, 0);
 }
 
-PHP_FUNCTION(jsonrpc_server_execute)
+PHP_METHOD(jsonrpc_server, execute)
 {
   zval *object;
   zval *func;
@@ -312,7 +312,7 @@ getresponse:
 
 }
 
-PHP_FUNCTION(jsonrpc_server_jformat)
+PHP_METHOD(jsonrpc_server, jsonformat)
 {
   zval *payload, *val;
   zval *object = getThis();
@@ -361,7 +361,7 @@ PHP_FUNCTION(jsonrpc_server_jformat)
   }
 }
 
-PHP_FUNCTION(jsonrpc_server_rformat)
+PHP_METHOD(jsonrpc_server, rpcformat)
 {
   zval *payload;
   zval *object;
@@ -437,7 +437,7 @@ PHP_FUNCTION(jsonrpc_server_rformat)
 
 }
 
-PHP_FUNCTION(jsonrpc_server_execute_procedure)
+PHP_METHOD(jsonrpc_server, executeprocedure)
 {
   zval *procedure, *params;
   zval *callbacks;
@@ -490,7 +490,7 @@ PHP_FUNCTION(jsonrpc_server_execute_procedure)
   
 }
 
-PHP_FUNCTION(jsonrpc_server_execute_callback)
+PHP_METHOD(jsonrpc_server, executecallback)
 {
   zval *closure = NULL;
   zval *params;
@@ -602,7 +602,7 @@ PHP_FUNCTION(jsonrpc_server_execute_callback)
   */
 }
 
-PHP_FUNCTION(jsonrpc_server_getresponse)
+PHP_METHOD(jsonrpc_server, getresponse)
 {
   zval *data;
   zval *key;
