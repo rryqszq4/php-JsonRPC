@@ -87,7 +87,7 @@ jsr_list_tail(jsr_list_t *self)
 void *
 jsr_list_item(jsr_list_t *self)
 {
-    if (self->self)
+    if (self->cursor)
         return self->cursor->item;
     else
         return NULL;
@@ -195,7 +195,7 @@ jsr_list_purge(jsr_list_t *self)
 {
     jsr_node_t *node = self->head;
     while (node){
-        jsr_node_t *next = self->next;
+        jsr_node_t *next = node->next;
         if (self->autofree){
             free(node->item);
         }

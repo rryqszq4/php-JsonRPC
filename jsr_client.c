@@ -388,9 +388,9 @@ doresponse:
 
 zend_function_entry jsonrpc_client_class_functions[] = {
   PHP_ME(jsonrpc_client, __construct, jsonrpc_client_construct_arginfo, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
-  PHP_ME(jsonrpc_client, __destruct,  jsonrpc_client_destruct_arginfo, ZEND_ACC_PUBLIC | ZEND_ACC_DTOR);
-  PHP_ME(jsonrpc_client, execute,     jsonrpc_client_execute_arginfo, ZEND_ACC_PUBLIC);
-  PHP_ME(jsonrpc_client, dorequest,   jsonrpc_client_dorequest_arginfo, ZEND_ACC_PUBLIC);
+  PHP_ME(jsonrpc_client, __destruct,  jsonrpc_client_destruct_arginfo, ZEND_ACC_PUBLIC | ZEND_ACC_DTOR)
+  PHP_ME(jsonrpc_client, execute,     jsonrpc_client_execute_arginfo, ZEND_ACC_PUBLIC)
+  PHP_ME(jsonrpc_client, dorequest,   jsonrpc_client_dorequest_arginfo, ZEND_ACC_PUBLIC)
   {NULL, NULL, NULL}
 };
 
