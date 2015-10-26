@@ -21,6 +21,14 @@
 #ifndef PHP_JSR_CLIENT_H
 #define PHP_JSR_CLIENT_H
 
+typedef struct _php_jsr_request_object {
+    jsr_epoll_t *epoll;
+
+    jsr_curlm_t *curlm;
+
+    zval *item_array;
+
+} php_jsr_reuqest_object;
 
 #endif
 
