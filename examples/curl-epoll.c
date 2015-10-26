@@ -48,6 +48,11 @@ main()
 	jsr_epoll_t *jsr_epoll = jsr_epoll_init();
 
 	jsr_curlm_t *jsr_curlm = jsr_curlm_new();
+
+	curl_multi_setopt(jsr_curlm->multi_handle, CURLMOPT_SOCKETFUNCTION, socket_callback);
+	curl_multi_setopt(jsr_curlm->multi_handle, CURLMOPT_SOCKETDATA, jsr_epoll);
+	curl_multi_setopt(jsr_curlm->multi_handle, CURLMOPT_TIMERFUNCTION, timer_callback);
+
 	jsr_curl_item_t *jsr_curl_item = jsr_curl_item_new(
 			"http://yaf-lib.com/admin/index/index",
 			"key=value",
@@ -63,10 +68,6 @@ main()
 		);
 	jsr_curl_item_setopt(jsr_curl_item_2);
 	jsr_curlm_list_append(jsr_curlm, jsr_curl_item_2);
-
-	curl_multi_setopt(jsr_curlm->multi_handle, CURLMOPT_SOCKETFUNCTION, socket_callback);
-	curl_multi_setopt(jsr_curlm->multi_handle, CURLMOPT_SOCKETDATA, jsr_epoll);
-	curl_multi_setopt(jsr_curlm->multi_handle, CURLMOPT_TIMERFUNCTION, timer_callback);
 
 	jsr_curlm_post(jsr_curlm);
 

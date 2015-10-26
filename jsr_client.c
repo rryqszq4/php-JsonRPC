@@ -65,6 +65,69 @@ ZEND_BEGIN_ARG_INFO_EX(jsonrpc_client_dorequest_arginfo, 0, 0, 1)
 ZEND_END_ARG_INFO()
 /* }}} */
 
+static zval* 
+_jsr_client_prepare_request(zval *procedure, zval *params)
+{
+  zval *payload;
+  long number;
+  int nb_params;
+
+  MAKE_STD_ZVAL(payload);
+  array_init(payload);
+
+  add_assoc_string(payload, "jsonrpc", "2.0", 0);
+  add_assoc_string(payload, "method", Z_STRVAL_P(procedure), 0);
+
+  if (!BG(mt_rand_is_seeded)) {
+    php_mt_srand(GENERATE_SEED() TSRMLS_CC);
+  }
+  number = (long) (php_mt_rand(TSRMLS_C) >> 1);
+  add_assoc_long(payload, "id", number);
+
+  nb_params = php_count_recursive(params, 0 TSRMLS_CC);
+  if (nb_params > 0)
+  {
+    add_assoc_zval(payload, "params", params);
+  }
+
+  return payload;
+}
+
+static int
+socket_callback(CURL *easy, curl_socket_t fd, int action, void *u, void *s)
+{
+  printf(">>> %s: adding fd=%d action=%d\n", __func__, fd, action);
+  jsr_epoll_t *jsr_epoll = (jsr_epoll_t *) u;
+
+  if (action == CURL_POLL_REMOVE)
+  {
+    jsr_epoll_del_fd(jsr_epoll, fd);
+  }
+
+  if (action == CURL_POLL_IN || action == CURL_POLL_INOUT)
+  {
+    printf("in\n");
+    jsr_epoll_add_fd(jsr_epoll, fd);
+    jsr_epoll_set_in(jsr_epoll, fd);
+  }
+
+  if (action == CURL_POLL_OUT || action == CURL_POLL_INOUT)
+  {
+    printf("out\n");
+    jsr_epoll_add_fd(jsr_epoll, fd);
+    jsr_epoll_set_out(jsr_epoll, fd);
+  }
+
+  return 0;
+}
+
+static int 
+timer_callback(CURLM *multi, long timeout_ms, void *u)
+{
+  printf(">>> %s: timeout: %ld ms\n", __func__, timeout_ms);
+    return 0;
+}
+
 PHP_METHOD(jsonrpc_client, __construct)
 {
   zval    *clone;
@@ -116,6 +179,11 @@ PHP_METHOD(jsonrpc_client, __construct)
   request = (php_jsr_reuqest_object *)zend_object_store_get_object(object TSRMLS_CC);
   request->epoll = jsr_epoll_init();
   request->curlm = jsr_curlm_new();
+
+  curl_multi_setopt(request->curlm->multi_handle, CURLMOPT_SOCKETFUNCTION, _socket_callback);
+  curl_multi_setopt(request->curlm->multi_handle, CURLMOPT_SOCKETDATA, request->epoll);
+  curl_multi_setopt(request->curlm->multi_handle, CURLMOPT_TIMERFUNCTION, _timer_callback);
+
   MAKE_STD_ZVAL(request->item_array);
   array_init(request->item_array);
 
@@ -192,15 +260,16 @@ PHP_METHOD(jsonrpc_client, call)
     );
   jsr_curl_item_setopt(jsr_curl_item);
   jsr_curlm_list_append(request->curlm, jsr_curl_item);
-  
+
 }
 
 PHP_METHOD(jsonrpc_client, execute)
 {
   zval *procedure;
   zval *params;
-  zval *request;
+  zval *payload;
   zval *response;
+  zval *request;
 
   zval *object;
   zval *func;
@@ -208,18 +277,21 @@ PHP_METHOD(jsonrpc_client, execute)
 
   object = getThis();
 
-  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz",
+  /*if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz",
     &procedure, &params) == FAILURE)
   {
 
-  }
+  }*/
+
+  request = (php_jsr_reuqest_object *)zend_object_store_get_object(object TSRMLS_CC);
+
 
   MAKE_STD_ZVAL(response);
-  MAKE_STD_ZVAL(request);
-  request = jr_client_prepare_request(procedure, params);
+  MAKE_STD_ZVAL(payload);
+  payload = _jsr_client_prepare_request(procedure, params);
 
   func_params = emalloc(sizeof(zval *) * 1);
-  func_params[0] = request;
+  func_params[0] = payload;
 
   MAKE_STD_ZVAL(func);
   ZVAL_STRINGL(func, "dorequest", sizeof("dorequest") - 1, 0);
@@ -229,6 +301,31 @@ PHP_METHOD(jsonrpc_client, execute)
 
   }
   efree(func_params);
+
+/*####################*/
+
+  jsr_curlm_post(request->curlm);
+
+  request->curlm->running_handles = 1;
+  request->epoll->loop_total = 0;
+  while (request->curlm->running_handles > 0)
+  {
+    printf(">>> calling epoll_wait\n");
+    loop_total = jsr_epoll_loop(jsr_epoll , 1000);
+    printf("%d\n", loop_total);
+
+    if (loop_total == 0){
+      curl_multi_socket_action(request->curlm->multi_handle, CURL_SOCKET_TIMEOUT, 0, &(request->curlm->running_handles));
+    }
+    else 
+    {
+      int i = 0;
+      for (i = 0; i < request->epoll->loop_total; i++){
+        curl_multi_socket_action(request->curlm->multi_handle, request->epoll->events[i].data.fd, 0, &(request->curlm->running_handles));
+      }
+    }
+
+  }
 
   RETVAL_ZVAL(response, 1, 0);
 

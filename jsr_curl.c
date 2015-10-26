@@ -66,6 +66,7 @@ jsr_curlm_new(void)
 
     jsr_curlm->multi_handle = curl_multi_init();
     jsr_curlm->list = jsr_list_new();
+    jsr_curlm->running_handles = 1;
 
     return jsr_curlm;
 

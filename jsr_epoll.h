@@ -32,6 +32,8 @@ struct _jsr_epoll_t
 {
     int epoll_fd;
     struct epoll_event events [JSR_MAX_EVENTS];
+
+    int loop_total;
 };
 
 jsr_epoll_t *jsr_epoll_init();

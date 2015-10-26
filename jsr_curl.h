@@ -51,6 +51,8 @@ struct _jsr_curlm_t
 {
     CURLM *multi_handle;
     jsr_list_t *list;
+
+    int running_handles;
 };
 
 struct _jsr_curl_item_t {
