@@ -85,5 +85,5 @@ if test "$PHP_JSONRPC" != "no"; then
   PHP_EVAL_LIBLINE($CURL_LIBS, YAR_SHARED_LIBADD)
   PHP_ADD_LIBRARY_WITH_PATH(curl, $CURL_DIR/$PHP_LIBDIR, YAR_SHARED_LIBADD)
 
-  PHP_NEW_EXTENSION(jsonrpc, jsonrpc.c, $ext_shared)
+  PHP_NEW_EXTENSION(jsonrpc, jsonrpc.c  jsr_client.c jsr_curl.c jsr_list.c jsr_epoll.c, $ext_shared)
 fi

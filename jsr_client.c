@@ -36,7 +36,6 @@
 #include "jsr_curl.h"
 #include "jsr_epoll.h"
 
-extern zend_class_entry *php_jsonrpc_client_entry;
 
 /** {{{ ARG_INFO
  *  */
@@ -65,6 +64,35 @@ ZEND_BEGIN_ARG_INFO_EX(jsonrpc_client_dorequest_arginfo, 0, 0, 1)
 ZEND_END_ARG_INFO()
 /* }}} */
 
+static int _php_count_recursive(zval *array, long mode TSRMLS_DC) /* {{{ */
+{
+  long cnt = 0;
+  zval **element;
+
+  if (Z_TYPE_P(array) == IS_ARRAY) {
+    if (Z_ARRVAL_P(array)->nApplyCount > 1) {
+      php_error_docref(NULL TSRMLS_CC, E_WARNING, "recursion detected");
+      return 0;
+    }
+
+    cnt = zend_hash_num_elements(Z_ARRVAL_P(array));
+    if (mode == COUNT_RECURSIVE) {
+      HashPosition pos;
+
+      for (zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(array), &pos);
+        zend_hash_get_current_data_ex(Z_ARRVAL_P(array), (void **) &element, &pos) == SUCCESS;
+        zend_hash_move_forward_ex(Z_ARRVAL_P(array), &pos)
+      ) {
+        Z_ARRVAL_P(array)->nApplyCount++;
+        cnt += _php_count_recursive(*element, COUNT_RECURSIVE TSRMLS_CC);
+        Z_ARRVAL_P(array)->nApplyCount--;
+      }
+    }
+  }
+
+  return cnt;
+}
+
 static zval* 
 _jsr_client_prepare_request(zval *procedure, zval *params)
 {
@@ -84,7 +112,7 @@ _jsr_client_prepare_request(zval *procedure, zval *params)
   number = (long) (php_mt_rand(TSRMLS_C) >> 1);
   add_assoc_long(payload, "id", number);
 
-  nb_params = php_count_recursive(params, 0 TSRMLS_CC);
+  nb_params = _php_count_recursive(params, 0 TSRMLS_CC);
   if (nb_params > 0)
   {
     add_assoc_zval(payload, "params", params);
@@ -94,7 +122,7 @@ _jsr_client_prepare_request(zval *procedure, zval *params)
 }
 
 static int
-socket_callback(CURL *easy, curl_socket_t fd, int action, void *u, void *s)
+_socket_callback(CURL *easy, curl_socket_t fd, int action, void *u, void *s)
 {
   printf(">>> %s: adding fd=%d action=%d\n", __func__, fd, action);
   jsr_epoll_t *jsr_epoll = (jsr_epoll_t *) u;
@@ -122,7 +150,7 @@ socket_callback(CURL *easy, curl_socket_t fd, int action, void *u, void *s)
 }
 
 static int 
-timer_callback(CURLM *multi, long timeout_ms, void *u)
+_timer_callback(CURLM *multi, long timeout_ms, void *u)
 {
   printf(">>> %s: timeout: %ld ms\n", __func__, timeout_ms);
     return 0;
@@ -144,7 +172,7 @@ PHP_METHOD(jsonrpc_client, __construct)
 
   object = getThis();
 
-  MAKE_STD_ZVAL(timeout_c);
+  /*MAKE_STD_ZVAL(timeout_c);
   ZVAL_LONG(timeout_c, 5);
 
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|zz",
@@ -173,7 +201,7 @@ PHP_METHOD(jsonrpc_client, __construct)
   }else {
     add_property_zval(object, "headers", _headers);
   }
-  
+  */
   jsr_curl_global_new();
 
   request = (php_jsr_reuqest_object *)zend_object_store_get_object(object TSRMLS_CC);
@@ -193,28 +221,9 @@ PHP_METHOD(jsonrpc_client, __destruct)
 {
   php_jsr_reuqest_object *request;
 
-  zval    *zid;
-  php_curl  *ch;
   zval *object;
 
   object = getThis();
-
-  zid = zend_read_property(
-      php_jsonrpc_server_entry, object, "ch", sizeof("ch")-1, 0 TSRMLS_CC
-    );
-
-  ZEND_FETCH_RESOURCE(ch, php_curl *, &zid, -1, le_curl_name, le_curl);
-
-  if (ch->in_callback) {
-    php_error_docref(NULL TSRMLS_CC, E_WARNING, "Attempt to close cURL handle from a callback");
-    return;
-  }
-
-  if (ch->uses) {
-    ch->uses--;
-  } else {
-    zend_list_delete(Z_LVAL_P(zid));
-  }
 
   request = (php_jsr_reuqest_object *)zend_object_store_get_object(object TSRMLS_CC);
 
@@ -227,7 +236,7 @@ PHP_METHOD(jsonrpc_client, __destruct)
 PHP_METHOD(jsonrpc_client, call)
 {
   php_jsr_reuqest_object *request;
-  jsr_curl_item_t *jsr_curl_item
+  jsr_curl_item_t *jsr_curl_item;
 
   zval *url;
   zval *procedure;
@@ -269,7 +278,7 @@ PHP_METHOD(jsonrpc_client, execute)
   zval *params;
   zval *payload;
   zval *response;
-  zval *request;
+  php_jsr_reuqest_object *request;
 
   zval *object;
   zval *func;
@@ -286,7 +295,7 @@ PHP_METHOD(jsonrpc_client, execute)
   request = (php_jsr_reuqest_object *)zend_object_store_get_object(object TSRMLS_CC);
 
 
-  MAKE_STD_ZVAL(response);
+  /*MAKE_STD_ZVAL(response);
   MAKE_STD_ZVAL(payload);
   payload = _jsr_client_prepare_request(procedure, params);
 
@@ -301,7 +310,7 @@ PHP_METHOD(jsonrpc_client, execute)
 
   }
   efree(func_params);
-
+*/
 /*####################*/
 
   jsr_curlm_post(request->curlm);
@@ -311,10 +320,10 @@ PHP_METHOD(jsonrpc_client, execute)
   while (request->curlm->running_handles > 0)
   {
     printf(">>> calling epoll_wait\n");
-    loop_total = jsr_epoll_loop(jsr_epoll , 1000);
-    printf("%d\n", loop_total);
+    request->epoll->loop_total = jsr_epoll_loop(request->epoll , 1000);
+    printf("%d\n", request->epoll->loop_total);
 
-    if (loop_total == 0){
+    if (request->epoll->loop_total == 0){
       curl_multi_socket_action(request->curlm->multi_handle, CURL_SOCKET_TIMEOUT, 0, &(request->curlm->running_handles));
     }
     else 
@@ -327,13 +336,13 @@ PHP_METHOD(jsonrpc_client, execute)
 
   }
 
-  RETVAL_ZVAL(response, 1, 0);
+  //RETVAL_ZVAL(response, 1, 0);
 
 }
 
 PHP_METHOD(jsonrpc_client, dorequest)
 {
-  zval *payload;
+  /*zval *payload;
   zval    *zid;
   php_curl  *ch;
 
@@ -417,7 +426,7 @@ PHP_METHOD(jsonrpc_client, dorequest)
   curl_easy_setopt(ch->cp, CURLOPT_POSTFIELDS, Z_STRVAL_P(payload));
   curl_easy_setopt(ch->cp, CURLOPT_POSTFIELDSIZE, Z_STRLEN_P(payload));
 
-  /* curl_exec */
+  // curl_exec 
   zval *http_body;
   zval *response;
   CURLcode  error;
@@ -431,7 +440,7 @@ PHP_METHOD(jsonrpc_client, dorequest)
 
   error = curl_easy_perform(ch->cp);
   SAVE_CURL_ERROR(ch, error);
-  /* CURLE_PARTIAL_FILE is returned by HEAD requests */
+  // CURLE_PARTIAL_FILE is returned by HEAD requests 
   if (error != CURLE_OK && error != CURLE_PARTIAL_FILE) {
     if (ch->handlers->write->buf.len > 0) {
       smart_str_free(&ch->handlers->write->buf);
@@ -455,7 +464,7 @@ PHP_METHOD(jsonrpc_client, dorequest)
     goto doresponse;
   }
 
-  /* flush the file handle, so any remaining data is synched to disk */
+  // flush the file handle, so any remaining data is synched to disk 
   if (ch->handlers->write->method == PHP_CURL_FILE && ch->handlers->write->fp) {
     fflush(ch->handlers->write->fp);
   }
@@ -484,10 +493,10 @@ doresponse:
     RETVAL_ZVAL(response, 1, 0);
     return ;
   }
-
+*/
 }
 
-zend_function_entry jsonrpc_client_class_functions[] = {
+static const zend_function_entry jsonrpc_client_class_functions[] = {
   PHP_ME(jsonrpc_client, __construct, jsonrpc_client_construct_arginfo, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
   PHP_ME(jsonrpc_client, __destruct,  jsonrpc_client_destruct_arginfo,  ZEND_ACC_PUBLIC | ZEND_ACC_DTOR)
   PHP_ME(jsonrpc_client, call,        jsonrpc_client_call_arginfo,      ZEND_ACC_PUBLIC)
@@ -495,6 +504,14 @@ zend_function_entry jsonrpc_client_class_functions[] = {
   PHP_ME(jsonrpc_client, dorequest,   jsonrpc_client_dorequest_arginfo, ZEND_ACC_PUBLIC)
   {NULL, NULL, NULL}
 };
+
+void 
+jsonrpc_client_init()
+{
+  zend_class_entry jsonrpc_client_class_entry;
+  INIT_CLASS_ENTRY(jsonrpc_client_class_entry, "Jsonrpc_Client", jsonrpc_client_class_functions);
+  php_jsonrpc_client_entry = zend_register_internal_class(&jsonrpc_client_class_entry TSRMLS_CC);
+}
 
 /*
  * Local variables:

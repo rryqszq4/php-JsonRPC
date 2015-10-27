@@ -21,6 +21,11 @@
 #ifndef PHP_JSR_CLIENT_H
 #define PHP_JSR_CLIENT_H
 
+#include "jsr_epoll.h"
+#include "jsr_curl.h" 
+
+#define COUNT_RECURSIVE     1
+
 typedef struct _php_jsr_request_object {
     jsr_epoll_t *epoll;
 
@@ -31,6 +36,13 @@ typedef struct _php_jsr_request_object {
 } php_jsr_reuqest_object;
 
 #endif
+
+static zend_class_entry *php_jsonrpc_client_entry;
+
+static int _php_count_recursive(zval *array, long mode TSRMLS_DC);
+static zval* _jsr_client_prepare_request(zval *procedure, zval *params);
+static int _socket_callback(CURL *easy, curl_socket_t fd, int action, void *u, void *s);
+static int _timer_callback(CURLM *multi, long timeout_ms, void *u);
 
 /*
  * Local variables:
