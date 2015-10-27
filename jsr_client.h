@@ -38,6 +38,7 @@ typedef struct _php_jsr_request_object {
 #endif
 
 static zend_class_entry *php_jsonrpc_client_entry;
+static zend_class_entry *php_jsonrpc_client_request_entry;
 
 static int _php_count_recursive(zval *array, long mode TSRMLS_DC);
 static zval* _jsr_client_prepare_request(zval *procedure, zval *params);

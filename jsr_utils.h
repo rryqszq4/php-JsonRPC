@@ -25,7 +25,7 @@
 #include "php_ini.h"
 #include "ext/standard/info.h"
 
-char* jsr_return_zval_type(zend_uchar type);
+static char* jsr_return_zval_type(zend_uchar type);
 void jsr_dump_zval(zval *data);
 
 #endif

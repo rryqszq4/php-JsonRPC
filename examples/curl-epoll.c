@@ -54,7 +54,7 @@ main()
 	curl_multi_setopt(jsr_curlm->multi_handle, CURLMOPT_TIMERFUNCTION, timer_callback);
 
 	jsr_curl_item_t *jsr_curl_item = jsr_curl_item_new(
-			"http://yaf-lib.com/admin/index/index",
+			"http://yaf-lib.com/",
 			"key=value",
 			9
 		);
@@ -68,6 +68,38 @@ main()
 		);
 	jsr_curl_item_setopt(jsr_curl_item_2);
 	jsr_curlm_list_append(jsr_curlm, jsr_curl_item_2);
+
+	jsr_curl_item_t *jsr_curl_item_3 = jsr_curl_item_new(
+			"http://yaf-lib.com/",
+			"key=value",
+			9
+		);
+	jsr_curl_item_setopt(jsr_curl_item_3);
+	jsr_curlm_list_append(jsr_curlm, jsr_curl_item_3);
+
+	jsr_curl_item_t *jsr_curl_item_4 = jsr_curl_item_new(
+			"http://yaf-lib.com/",
+			"key=value",
+			9
+		);
+	jsr_curl_item_setopt(jsr_curl_item_4);
+	jsr_curlm_list_append(jsr_curlm, jsr_curl_item_4);
+
+	jsr_curl_item_t *jsr_curl_item_5 = jsr_curl_item_new(
+			"http://yaf-lib.com/",
+			"key=value",
+			9
+		);
+	jsr_curl_item_setopt(jsr_curl_item_5);
+	jsr_curlm_list_append(jsr_curlm, jsr_curl_item_5);
+
+	jsr_curl_item_t *jsr_curl_item_6 = jsr_curl_item_new(
+			"http://yaf-lib.com/",
+			"key=value",
+			9
+		);
+	jsr_curl_item_setopt(jsr_curl_item_6);
+	jsr_curlm_list_append(jsr_curlm, jsr_curl_item_6);
 
 	jsr_curlm_post(jsr_curlm);
 

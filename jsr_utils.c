@@ -20,7 +20,7 @@
 
 #include "jsr_utils.h"
 
-char* jsr_return_zval_type(zend_uchar type)
+static char* jsr_return_zval_type(zend_uchar type)
 {
   switch (type) {
     case IS_NULL:
