@@ -57,7 +57,7 @@ jsr_epoll_set_in(jsr_epoll_t *self, int fd)
 {
     struct epoll_event ev;
 
-    ev.events |= EPOLLIN;
+    ev.events = EPOLLIN;
     ev.data.fd = fd;
 
     if (epoll_ctl(self->epoll_fd, EPOLL_CTL_MOD, fd, &ev) == -1)
@@ -71,7 +71,7 @@ jsr_epoll_set_out(jsr_epoll_t *self, int fd)
 {
     struct epoll_event ev;
 
-    ev.events |= EPOLLOUT;
+    ev.events = EPOLLOUT;
     ev.data.fd = fd;
 
     if (epoll_ctl(self->epoll_fd, EPOLL_CTL_MOD, fd, &ev) == -1)

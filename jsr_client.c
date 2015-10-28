@@ -200,6 +200,7 @@ PHP_METHOD(jsonrpc_client, __construct)
     add_property_zval(object, "headers", _headers);
   }
   */
+  
   jsr_curl_global_new();
 
   //epoll = jsr_epoll_init();
@@ -209,10 +210,17 @@ PHP_METHOD(jsonrpc_client, __construct)
   object_init_ex(request_obj, php_jsonrpc_client_request_entry);
   request = (php_jsr_reuqest_object *)zend_object_store_get_object(request_obj TSRMLS_CC);
 
+  //struct epoll_event events [JSR_MAX_EVENTS];
+
+  //request->epoll->events = events;
+  //memcpy(request->epoll->events, events, sizeof(events));
+
   request->epoll->epoll_fd = epoll_create(1024);
 
   request->curlm->multi_handle = curl_multi_init();
+  
   request->curlm->list = jsr_list_new();
+
   request->curlm->running_handles = 1;
 
 
@@ -224,6 +232,7 @@ PHP_METHOD(jsonrpc_client, __construct)
 
   //MAKE_STD_ZVAL(request->item_array);
   //array_init(request->item_array);
+
 
 }
 
@@ -252,10 +261,13 @@ PHP_METHOD(jsonrpc_client, __destruct)
       jsr_curl_item_destroy(&item);
   }
   curl_multi_cleanup(request->curlm->multi_handle);
+  //jsr_list_destroy(&request->curlm->list);
   //jsr_list_purge(request->curlm->list);
-
+  free(request->curlm->list);
+  request->curlm->list = NULL;
 
   jsr_curl_global_destroy();
+  printf("jsonrpc_client __destruct\n");
 }
 
 PHP_METHOD(jsonrpc_client, call)
@@ -302,6 +314,9 @@ PHP_METHOD(jsonrpc_client, call)
     );
   jsr_curl_item_setopt(jsr_curl_item);
   jsr_curlm_list_append(request->curlm, jsr_curl_item);
+
+
+  jsr_curlm_post(request->curlm);
 
 }
 
@@ -351,7 +366,7 @@ PHP_METHOD(jsonrpc_client, execute)
 */
 /*####################*/
 
-  jsr_curlm_post(request->curlm);
+  printf(">>> list_size : %d\n", jsr_list_size(request->curlm->list));
 
   request->curlm->running_handles = 1;
   request->epoll->loop_total = 0;
@@ -359,13 +374,15 @@ PHP_METHOD(jsonrpc_client, execute)
   {
     printf(">>> calling epoll_wait\n");
     request->epoll->loop_total = jsr_epoll_loop(request->epoll , 1000);
-    printf("%d\n", request->epoll->loop_total);
+    printf(">>> loop_total %d\n", request->epoll->loop_total);
+    printf(">>> running_handles %d\n", request->curlm->running_handles);
 
     if (request->epoll->loop_total == 0){
       curl_multi_socket_action(request->curlm->multi_handle, CURL_SOCKET_TIMEOUT, 0, &(request->curlm->running_handles));
     }
     else 
     {
+      printf(">>> fd : %d\n", request->epoll->events[0].data.fd);
       int i = 0;
       for (i = 0; i < request->epoll->loop_total; i++){
         curl_multi_socket_action(request->curlm->multi_handle, request->epoll->events[i].data.fd, 0, &(request->curlm->running_handles));
