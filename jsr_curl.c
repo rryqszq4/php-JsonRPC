@@ -116,7 +116,7 @@ jsr_curl_item_new(char *url, char *field, size_t field_size)
     item->timeout = 5;
     item->post_field = field;
     item->post_field_size = field_size;
-    item->fp = fopen("curl_data.txt", "ab+");
+    //item->fp = fopen("curl_data.txt", "ab+");
 
     return item;
 }
@@ -128,7 +128,7 @@ jsr_curl_item_destroy(jsr_curl_item_t **self_p)
     {
         jsr_curl_item_t *self = *self_p;
         curl_easy_cleanup(self->curl_handle);
-        fclose(self->fp);
+        //fclose(self->fp);
         free(self);
         *self_p = NULL;
     }
@@ -224,12 +224,15 @@ jsr_curl_item_setopt(jsr_curl_item_t *self)
     curl_easy_setopt(self->curl_handle, CURLOPT_CONNECTTIMEOUT, self->timeout);
     curl_easy_setopt(self->curl_handle, CURLOPT_USERAGENT, "JSON-RPC PHP Client");
     curl_easy_setopt(self->curl_handle, CURLOPT_HTTPHEADER, self->slist);
-    curl_easy_setopt(self->curl_handle, CURLOPT_FOLLOWLOCATION, 0);
+    curl_easy_setopt(self->curl_handle, CURLOPT_FOLLOWLOCATION, 1);
     curl_easy_setopt(self->curl_handle, CURLOPT_CUSTOMREQUEST, "POST");
     curl_easy_setopt(self->curl_handle, CURLOPT_SSL_VERIFYPEER, 1);
 
     curl_easy_setopt(self->curl_handle, CURLOPT_POSTFIELDS, self->post_field);
     curl_easy_setopt(self->curl_handle, CURLOPT_POSTFIELDSIZE, self->post_field_size);
+
+    curl_easy_setopt(self->curl_handle, CURLOPT_WRITEFUNCTION, self->write_callback);
+    curl_easy_setopt(self->curl_handle, CURLOPT_WRITEDATA, self);
 
     //curl_easy_setopt(self->curl_handle, CURLOPT_DEBUGFUNCTION, my_trace);
     //curl_easy_setopt(self->curl_handle, CURLOPT_VERBOSE, 1L);

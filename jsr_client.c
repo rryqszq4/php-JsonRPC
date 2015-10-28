@@ -35,6 +35,7 @@
 #include "jsr_client.h"
 #include "jsr_curl.h"
 #include "jsr_epoll.h"
+#include "jsr_utils.h"
 
 
 /** {{{ ARG_INFO
@@ -164,7 +165,7 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
   item->write_data = (char *)malloc(sizeof(char)*length+1);
   memcpy(item->write_data, ptr, length);
 
-  //printf("ptr >>> %s %d\n", item->write_data, strlen(item->write_data));
+  printf("ptr >>> %s %d %d\n", item->write_data, strlen(item->write_data), item->write_length);
   //free(item->write_data);
 
   return length;
@@ -294,6 +295,8 @@ PHP_METHOD(jsonrpc_client, call)
   zval *url;
   zval *procedure;
   zval *params;
+  zval *payload;
+
   zval *item;
   zval *object;
   zval *request_obj;
@@ -322,10 +325,24 @@ PHP_METHOD(jsonrpc_client, call)
   add_next_index_zval(request->item_array, item);
 
 */
+
+
+  MAKE_STD_ZVAL(payload);
+  payload = _jsr_client_prepare_request(procedure, params);
+
+  smart_str buf = {0};
+  php_json_encode(&buf, payload, 0 TSRMLS_CC);
+  ZVAL_STRINGL(payload, buf.c, buf.len, 1);
+  smart_str_free(&buf);
+
+  jsr_dump_zval(payload);
+
+  convert_to_string_ex(&payload);
+
   jsr_curl_item = jsr_curl_item_new(
       Z_STRVAL_P(url),
-      "key=value",
-      9
+      Z_STRVAL_P(payload),
+      Z_STRLEN_P(payload)
     );
   jsr_curl_item->write_callback = _write_callback;
   jsr_curl_item_setopt(jsr_curl_item);

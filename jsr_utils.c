@@ -20,6 +20,7 @@
 
 #include "jsr_utils.h"
 
+
 static char* jsr_return_zval_type(zend_uchar type)
 {
   switch (type) {
@@ -57,7 +58,7 @@ void jsr_dump_zval(zval *data)
   php_printf("zval<%p> {\n", data);
   php_printf("  refcount__gc -> %d\n", data->refcount__gc);
   php_printf("  is_ref__gc -> %d\n", data->is_ref__gc);
-  php_printf("  type -> %s\n", shurrik_return_zval_type(data->type));
+  php_printf("  type -> %s\n", jsr_return_zval_type(data->type));
   php_printf("  zand_value<%p> {\n", data->value);
 
   php_printf("    lval -> %d\n", data->value.lval);

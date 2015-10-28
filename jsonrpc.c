@@ -57,9 +57,6 @@ static int  le_curl_multi_handle;
 
 static zend_class_entry *php_jsonrpc_server_entry;
 
-static void shurrik_dump_zval(zval *data TSRMLS_DC);
-static char* shurrik_return_zval_type(zend_uchar type TSRMLS_DC);
-
 /* {{{ jsonrpc_functions[]
  *
  * Every user visible function must have an entry in jsonrpc_functions[].
@@ -114,60 +111,6 @@ static void php_jsonrpc_init_globals(zend_jsonrpc_globals *jsonrpc_globals)
 }
 */
 /* }}} */
-
-static char* shurrik_return_zval_type(zend_uchar type)
-{
-	switch (type) {
-		case IS_NULL:
-			return "IS_NULL";
-			break;
-		case IS_BOOL:
-			return "IS_BOOL";
-			break;
-		case IS_LONG:
-			return "IS_LONG";
-			break;
-		case IS_DOUBLE:
-			return "IS_DOUBLE";
-			break;
-		case IS_STRING:
-			return "IS_STRING";
-			break;
-		case IS_ARRAY:
-			return "IS_ARRAY";
-			break;
-		case IS_OBJECT:
-			return "IS_OBJECT";
-			break;
-		case IS_RESOURCE:
-			return "IS_RESOURCE";
-			break;
-		default :
-			return "unknown";
-	}
-}
-
-static void shurrik_dump_zval(zval *data)
-{
-	php_printf("zval<%p> {\n", data);
-	php_printf("	refcount__gc -> %d\n", data->refcount__gc);
-	php_printf("	is_ref__gc -> %d\n", data->is_ref__gc);
-	php_printf("	type -> %s\n", shurrik_return_zval_type(data->type));
-	php_printf("	zand_value<%p> {\n", data->value);
-
-	php_printf("		lval -> %d\n", data->value.lval);
-	php_printf("		dval -> %e\n", data->value.dval);
-	if (Z_TYPE_P(data) == IS_STRING){
-		php_printf("		str -> %s\n", Z_STRVAL_P(data));
-	}
-	php_printf("		*ht<%p> {\n", data->value.ht);
-	php_printf("		}\n");
-	php_printf("		obj<%p> {\n", data->value.obj);
-	php_printf("		}\n");
-	php_printf("	}\n");
-
-	php_printf("}\n");
-}
 
 
 
