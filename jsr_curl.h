@@ -64,6 +64,10 @@ struct _jsr_curl_item_t {
     char    *post_field;
     size_t  post_field_size;
     FILE    *fp;
+
+    size_t (*write_callback)(char *ptr, size_t size, size_t nmemb, void *ctx);
+    char *write_data;
+    size_t write_length;
 };
 
 typedef char bool;

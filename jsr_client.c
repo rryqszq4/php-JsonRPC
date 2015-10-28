@@ -124,7 +124,7 @@ _jsr_client_prepare_request(zval *procedure, zval *params)
 static int
 _socket_callback(CURL *easy, curl_socket_t fd, int action, void *u, void *s)
 {
-  printf(">>> %s: adding fd=%d action=%d\n", __func__, fd, action);
+  //printf(">>> %s: adding fd=%d action=%d\n", __func__, fd, action);
   jsr_epoll_t *jsr_epoll = (jsr_epoll_t *) u;
 
   if (action == CURL_POLL_REMOVE)
@@ -134,14 +134,12 @@ _socket_callback(CURL *easy, curl_socket_t fd, int action, void *u, void *s)
 
   if (action == CURL_POLL_IN || action == CURL_POLL_INOUT)
   {
-    printf("in\n");
     jsr_epoll_add_fd(jsr_epoll, fd);
     jsr_epoll_set_in(jsr_epoll, fd);
   }
 
   if (action == CURL_POLL_OUT || action == CURL_POLL_INOUT)
   {
-    printf("out\n");
     jsr_epoll_add_fd(jsr_epoll, fd);
     jsr_epoll_set_out(jsr_epoll, fd);
   }
@@ -152,8 +150,24 @@ _socket_callback(CURL *easy, curl_socket_t fd, int action, void *u, void *s)
 static int 
 _timer_callback(CURLM *multi, long timeout_ms, void *u)
 {
-  printf(">>> %s: timeout: %ld ms\n", __func__, timeout_ms);
+  //printf(">>> %s: timeout: %ld ms\n", __func__, timeout_ms);
     return 0;
+}
+
+static size_t
+_write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
+{
+  jsr_curl_item_t * item = (jsr_curl_item_t *)ctx;
+  size_t length = size * nmemb;
+  item->write_length = length;
+
+  item->write_data = (char *)malloc(sizeof(char)*length+1);
+  memcpy(item->write_data, ptr, length);
+
+  //printf("ptr >>> %s %d\n", item->write_data, strlen(item->write_data));
+  //free(item->write_data);
+
+  return length;
 }
 
 PHP_METHOD(jsonrpc_client, __construct)
@@ -258,6 +272,7 @@ PHP_METHOD(jsonrpc_client, __destruct)
   for (node = jsr_list_first(request->curlm->list) ; node != NULL; node = jsr_list_next(request->curlm->list))
   {
       item = jsr_list_item(request->curlm->list);
+      free(item->write_data);
       jsr_curl_item_destroy(&item);
   }
   curl_multi_cleanup(request->curlm->multi_handle);
@@ -267,7 +282,7 @@ PHP_METHOD(jsonrpc_client, __destruct)
   request->curlm->list = NULL;
 
   jsr_curl_global_destroy();
-  printf("jsonrpc_client __destruct\n");
+  //printf("jsonrpc_client __destruct\n");
 }
 
 PHP_METHOD(jsonrpc_client, call)
@@ -312,6 +327,7 @@ PHP_METHOD(jsonrpc_client, call)
       "key=value",
       9
     );
+  jsr_curl_item->write_callback = _write_callback;
   jsr_curl_item_setopt(jsr_curl_item);
   jsr_curlm_list_append(request->curlm, jsr_curl_item);
 
@@ -366,26 +382,32 @@ PHP_METHOD(jsonrpc_client, execute)
 */
 /*####################*/
 
-  printf(">>> list_size : %d\n", jsr_list_size(request->curlm->list));
+  //printf(">>> list_size : %d\n", jsr_list_size(request->curlm->list));
 
   request->curlm->running_handles = 1;
   request->epoll->loop_total = 0;
   while (request->curlm->running_handles > 0)
   {
-    printf(">>> calling epoll_wait\n");
     request->epoll->loop_total = jsr_epoll_loop(request->epoll , 1000);
-    printf(">>> loop_total %d\n", request->epoll->loop_total);
-    printf(">>> running_handles %d\n", request->curlm->running_handles);
 
     if (request->epoll->loop_total == 0){
       curl_multi_socket_action(request->curlm->multi_handle, CURL_SOCKET_TIMEOUT, 0, &(request->curlm->running_handles));
     }
     else 
     {
-      printf(">>> fd : %d\n", request->epoll->events[0].data.fd);
       int i = 0;
       for (i = 0; i < request->epoll->loop_total; i++){
         curl_multi_socket_action(request->curlm->multi_handle, request->epoll->events[i].data.fd, 0, &(request->curlm->running_handles));
+        
+        jsr_node_t *node;
+        jsr_curl_item_t *item;
+        for (node = jsr_list_first(request->curlm->list) ; node != NULL; node = jsr_list_next(request->curlm->list))
+        {
+          item = jsr_list_item(request->curlm->list);
+          if (item->write_data)
+            printf("ptr >>> %s %d\n", item->write_data, strlen(item->write_data));
+        }
+
       }
     }
 
