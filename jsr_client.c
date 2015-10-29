@@ -470,7 +470,7 @@ PHP_METHOD(jsonrpc_client, execute)
   request->epoll->loop_total = 0;
   while (request->curlm->running_handles > 0)
   {
-    request->epoll->loop_total = jsr_epoll_loop(request->epoll , 100);
+    request->epoll->loop_total = jsr_epoll_loop(request->epoll , 10);
 
     if (request->epoll->loop_total == 0){
       curl_multi_socket_action(request->curlm->multi_handle, CURL_SOCKET_TIMEOUT, 0, &(request->curlm->running_handles));
@@ -480,7 +480,7 @@ PHP_METHOD(jsonrpc_client, execute)
       int i = 0;
       for (i = 0; i < request->epoll->loop_total; i++){
         curl_multi_socket_action(request->curlm->multi_handle, request->epoll->events[i].data.fd, 0, &(request->curlm->running_handles));
-        
+
         /*jsr_node_t *node;
         jsr_curl_item_t *item;
         for (node = jsr_list_first(request->curlm->list) ; node != NULL; node = jsr_list_next(request->curlm->list))
@@ -490,6 +490,7 @@ PHP_METHOD(jsonrpc_client, execute)
             //printf("ptr >>> %s %d\n", item->write_data, strlen(item->write_data));
         }*/
       }
+      
       jsr_curl_item_t *item;
       size_t size;
       size = jsr_list_size(request->curlm->list);
