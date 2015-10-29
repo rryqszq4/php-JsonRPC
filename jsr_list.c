@@ -28,6 +28,16 @@ jsr_list_new(void)
 }
 
 void 
+jsr_list_free(jsr_list_t **self_p)
+{
+    if (*self_p){
+        jsr_list_t *self = *self_p;
+        free(self);
+        *self_p = NULL;
+    }
+}
+
+void 
 jsr_list_destroy(jsr_list_t **self_p)
 {
     if (*self_p){
@@ -105,8 +115,8 @@ jsr_list_append(jsr_list_t *self, void *item)
     if (!node)
         return -1;
 
-    if (self->autofree)
-        item = strdup((char *)item);
+    //if (self->autofree)
+    //    item = strdup((char *)item);
 
     node->item = item;
     if (self->tail)

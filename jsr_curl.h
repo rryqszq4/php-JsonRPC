@@ -57,11 +57,11 @@ struct _jsr_curlm_t
 
 struct _jsr_curl_item_t {
     CURL    *curl_handle;
-    char    *url;
+    char    url[128];
     int     timeout;
 
     struct curl_slist *slist;
-    char    *post_field;
+    char    post_field[128];
     size_t  post_field_size;
     FILE    *fp;
 
@@ -91,7 +91,7 @@ jsr_curlm_t *jsr_curlm_new(void);
 void *jsr_curlm_destroy(jsr_curlm_t **self_p);
 int jsr_curlm_list_append(jsr_curlm_t *self, jsr_curl_item_t *item);
 int jsr_curlm_list_remove(jsr_curlm_t *self, jsr_curl_item_t *item);
-void *jsr_curlm_post(jsr_curlm_t *self);
+void *jsr_curlm_add_post(jsr_curlm_t *self);
 
 jsr_curl_item_t *jsr_curl_item_new(char *url, char *field, size_t field_size);
 void *jsr_curl_item_destroy(jsr_curl_item_t **self_p);

@@ -19,6 +19,14 @@
 /* $Id$ */
 #include "jsr_epoll.h"
 
+int jsr_setnonblocking(int fd)
+{
+  int old_option = fcntl(fd, F_GETFL);
+  int new_option = old_option | O_NONBLOCK;
+  fcntl(fd, F_SETFL, new_option);
+  return old_option;
+}
+
 jsr_epoll_t *
 jsr_epoll_init()
 {
@@ -39,6 +47,8 @@ jsr_epoll_add_fd(jsr_epoll_t *self, int fd)
 
     if (epoll_ctl(self->epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1)
         return -1;
+
+    jsr_setnonblocking(self->epoll_fd);
 
     return 0;
 }

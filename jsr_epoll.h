@@ -21,6 +21,7 @@
 #define JSR_EPOLL_H
 
 #include <stdlib.h>
+#include <fcntl.h>
 #include <sys/epoll.h>
 #include <errno.h>
 
@@ -35,6 +36,8 @@ struct _jsr_epoll_t
 
     int loop_total;
 };
+
+int jsr_setnonblocking(int fd);
 
 jsr_epoll_t *jsr_epoll_init();
 

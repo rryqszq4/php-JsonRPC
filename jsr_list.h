@@ -42,6 +42,7 @@ struct _jsr_list_t {
 };
 
 jsr_list_t *jsr_list_new(void);
+void jsr_list_free(jsr_list_t **self_p);
 void jsr_list_destroy(jsr_list_t **self_p);
 
 void *jsr_list_first(jsr_list_t *self);

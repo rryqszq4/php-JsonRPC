@@ -80,13 +80,13 @@ jsr_curlm_destroy(jsr_curlm_t **self_p)
 
     if (*self_p){
         jsr_curlm_t *self = *self_p;
-        for (node = jsr_list_first(self->list) ; node != NULL; node = jsr_list_next(self->list))
+        /*for (node = jsr_list_first(self->list) ; node != NULL; node = jsr_list_next(self->list))
         {
             item = jsr_list_item(self->list);
             jsr_curl_item_destroy(&item);
-        }
+        }*/
         curl_multi_cleanup(self->multi_handle);
-        jsr_list_destroy(&self->list);
+        jsr_list_free(&self->list);
         free(self);
         *self_p = NULL;
     }
@@ -104,6 +104,28 @@ jsr_curlm_list_append(jsr_curlm_t *self, jsr_curl_item_t *item)
     return 0;
 }
 
+int
+jsr_curlm_list_push(jsr_curlm_t *self, jsr_curl_item_t *item)
+{
+    if (!self || !item)
+        return -1;
+
+    if (jsr_list_push(self->list, item))
+        return -1;
+
+    return 0;
+}
+
+jsr_curl_item_t *
+jsr_curlm_list_pop(jsr_curlm_t *self)
+{
+  if (!self)
+    return NULL;
+
+  return jsr_list_pop(self->list);
+
+}
+
 jsr_curl_item_t *
 jsr_curl_item_new(char *url, char *field, size_t field_size)
 {
@@ -112,9 +134,14 @@ jsr_curl_item_new(char *url, char *field, size_t field_size)
         return NULL;
 
     item->curl_handle = curl_easy_init();
-    item->url = url;
+    memset(item->url, 0, 128);
+    strcpy(item->url, url);
+   
     item->timeout = 5;
-    item->post_field = field;
+
+    memset(item->post_field, 0, 128);
+    strcpy(item->post_field, field);
+    
     item->post_field_size = field_size;
     //item->fp = fopen("curl_data.txt", "ab+");
 
@@ -241,19 +268,22 @@ jsr_curl_item_setopt(jsr_curl_item_t *self)
 }
 
 void *
-jsr_curlm_post(jsr_curlm_t *self)
+jsr_curlm_add_post(jsr_curlm_t *self)
 {
-    jsr_node_t *node;
     jsr_curl_item_t *item;
     int still_running;
 
-    for (node = jsr_list_first(self->list) ; node != NULL; node = jsr_list_next(self->list))
-    {
+    size_t size;
 
-        item = jsr_list_item(self->list);
-        // multi stack
+    size = jsr_list_size(self->list);
+
+    while (size > 0){
+        item = jsr_list_next(self->list);
         curl_multi_add_handle(self->multi_handle, item->curl_handle);
+        size--;
     }
+
+    self->list->cursor = NULL;
 
     //curl_multi_perform(self->multi_handle, &still_running);
     
