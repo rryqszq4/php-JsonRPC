@@ -80,7 +80,7 @@ Example with positional parameters:
 ```php
 <?php
 
-$client = new Jsonrpc_Client('http://localhost/server.php');
+$client = new Jsonrpc_Client();
 $client->call('http://localhost/server.php','addition', array(3,5));
 $result = $client->execute();
 
