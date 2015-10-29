@@ -162,11 +162,14 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
   size_t length = size * nmemb;
   item->write_length = length;
 
-  item->write_data = (char *)malloc(sizeof(char)*length+1);
-  memcpy(item->write_data, ptr, length);
+  item->write_data = (char *)malloc(length+1);
 
-  printf("ptr >>> %s %d %d\n", item->write_data, strlen(item->write_data), item->write_length);
-  //free(item->write_data);
+  memset(item->write_data, '\0', length+1);
+
+
+  memcpy(item->write_data, ptr, length);
+  //printf("ptr >>> [%s] %d\n", ptr ,strlen(ptr));
+  //printf("data >>> %s %d %d\n", item->write_data, strlen(item->write_data), item->write_length);
 
   return length;
 }
@@ -274,6 +277,7 @@ PHP_METHOD(jsonrpc_client, __destruct)
   {
       item = jsr_list_item(request->curlm->list);
       free(item->write_data);
+      item->write_data = NULL;
       jsr_curl_item_destroy(&item);
   }
   curl_multi_cleanup(request->curlm->multi_handle);
