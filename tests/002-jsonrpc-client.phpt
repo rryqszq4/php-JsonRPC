@@ -5,7 +5,15 @@ Check for jsonrpc presence
 --FILE--
 <?php 
 	$client = new Jsonrpc_Client();
-	var_dump($client);
+    $client->call('http://yaf-lib.com/rpc/json', "addition", array(3,5));
+	$client->call('http://yaf-lib.com/rpc/json', "addition", array(3,5));
+    $client->call('http://yaf-lib.com/rpc/json', "addition", array(3,5));
+    $client->execute();
+    var_dump($client);
 ?>
 --EXPECT--
-*RECURSION*
+object(Jsonrpc_Client)#1 (1) {
+  ["request"]=>
+  object(Jsonrpc_Client_Request)#2 (0) {
+  }
+}
