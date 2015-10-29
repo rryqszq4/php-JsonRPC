@@ -1,7 +1,7 @@
 JsonRPC 2.0 Client and Server
 =============================
 
-Lightweight Json-RPC 2.0 client/server in php extension
+Lightweight multi Json-RPC 2.0 client/server in php extension
 
 Requirement
 -----------
@@ -81,7 +81,8 @@ Example with positional parameters:
 <?php
 
 $client = new Jsonrpc_Client('http://localhost/server.php');
-$result = $client->execute('addition', array(3,5));
+$client->call('http://localhost/server.php','addition', array(3,5));
+$result = $client->execute();
 
 var_dump($result);
 ```
