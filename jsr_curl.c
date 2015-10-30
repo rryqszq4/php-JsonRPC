@@ -134,15 +134,20 @@ jsr_curl_item_new(char *url, char *field, size_t field_size)
         return NULL;
 
     item->curl_handle = curl_easy_init();
+
+    int url_size;
+    url_size = strlen(url);
+
     memset(item->url, 0, 128);
     strcpy(item->url, url);
-   
-    item->timeout = 5;
 
-    memset(item->post_field, 0, 128);
+    memset(item->post_field, 0, 256);
     strcpy(item->post_field, field);
     
     item->post_field_size = field_size;
+
+    item->timeout = 5;
+
     //item->fp = fopen("curl_data.txt", "ab+");
 
     return item;
@@ -250,11 +255,14 @@ jsr_curl_item_setopt(jsr_curl_item_t *self)
     curl_easy_setopt(self->curl_handle, CURLOPT_URL, self->url);
     curl_easy_setopt(self->curl_handle, CURLOPT_CONNECTTIMEOUT, self->timeout);
     curl_easy_setopt(self->curl_handle, CURLOPT_USERAGENT, "JSON-RPC PHP Client");
-    curl_easy_setopt(self->curl_handle, CURLOPT_HTTPHEADER, self->slist);
-    curl_easy_setopt(self->curl_handle, CURLOPT_FOLLOWLOCATION, 1);
+    //curl_easy_setopt(self->curl_handle, CURLOPT_HTTPHEADER, self->slist);
+    curl_easy_setopt(self->curl_handle, CURLOPT_FOLLOWLOCATION, 0);
     curl_easy_setopt(self->curl_handle, CURLOPT_CUSTOMREQUEST, "POST");
     curl_easy_setopt(self->curl_handle, CURLOPT_SSL_VERIFYPEER, 1);
 
+    curl_easy_setopt(self->curl_handle, CURLOPT_NOPROGRESS,        1);
+
+    //curl_easy_setopt(self->curl_handle, CURLOPT_POSTFIELDS, "{\"jsonrpc\":\"2.0\",\"method\":\"addition\",\"id\":1793433748,\"params\":[3,5]}");
     curl_easy_setopt(self->curl_handle, CURLOPT_POSTFIELDS, self->post_field);
     curl_easy_setopt(self->curl_handle, CURLOPT_POSTFIELDSIZE, self->post_field_size);
 

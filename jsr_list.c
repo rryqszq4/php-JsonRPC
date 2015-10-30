@@ -175,7 +175,40 @@ jsr_list_pop(jsr_list_t *self)
     return item;
 }
 
-//void jsr_list_remove(jsr_list_t *self, void *item);
+void jsr_list_remove(jsr_list_t *self, void *item)
+{
+    jsr_node_t *node, *prev = NULL;
+
+    //  First off, we need to find the list node
+    for (node = self->head; node != NULL; node = node->next) {
+        if (self->compare_fn) {
+            if ((*self->compare_fn)(node->item, item) == 0)
+               break;
+        }
+        else {
+            if (node->item == item)
+                break;
+        }
+        prev = node;
+    }
+    if (node) {
+        if (prev)
+            prev->next = node->next;
+        else
+            self->head = node->next;
+
+        if (node->next == NULL)
+            self->tail = prev;
+        if (self->cursor == node)
+            self->cursor = prev;
+
+        //if (node->free_fn)
+        //    (node->free_fn)(node->item);
+
+        free (node);
+        self->size--;
+    }
+}
 
 int 
 jsr_list_exists(jsr_list_t *self, void *item)

@@ -61,7 +61,7 @@ struct _jsr_curl_item_t {
     int     timeout;
 
     struct curl_slist *slist;
-    char    post_field[128];
+    char    post_field[256];
     size_t  post_field_size;
     FILE    *fp;
 
