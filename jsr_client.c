@@ -161,8 +161,9 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
 
   //memset(item->write_data, '\0', length+1);
 
-
-  //strncpy(item->write_data, ptr, length);
+  //php_printf("ptr: >>> %s <<<%d\n", ptr, strlen(ptr));
+  strncpy(item->write_data, ptr, length);
+  //php_printf("data: >>> %s <<<%d\n", item->write_data, strlen(item->write_data));
   
 
   //printf("ptr >>> [%s] %d\n", ptr ,strlen(ptr));
@@ -194,7 +195,7 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
     }
 
     res = curl_multi_remove_handle(jsr_request->curlm->multi_handle, item->curl_handle);
-     php_printf("%d %d, %d\n", res, jsr_request->curlm->multi_handle, item->curl_handle);
+     //php_printf("%d %d, %d\n", res, jsr_request->curlm->multi_handle, item->curl_handle);
 
     jsr_curl_item_destroy(&item);
 
@@ -206,7 +207,7 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
 
   efree(jsr_request);
 
-  php_printf("jsr_request_destroy\n");
+  //php_printf("jsr_request_destroy\n");
 }
 
 static zend_object_value
@@ -231,7 +232,7 @@ _php_jsr_request_object_new(zend_class_entry *class_type TSRMLS_DC)
   jsr_request->epoll = NULL;
   jsr_request->curlm = NULL;
 
-  php_printf("jsr_request_new\n");
+  //php_printf("jsr_request_new\n");
 
   result.handle = zend_objects_store_put(
       jsr_request,
@@ -511,11 +512,11 @@ PHP_METHOD(jsonrpc_client, execute)
   jsr_curl_item_t *item;
     size_t size;
     size = jsr_list_size(request->curlm->list);
-    php_printf("size >>> %d\n", size);
+    //php_printf("size >>> %d\n", size);
     while (size > 0){
       item = jsr_list_next(request->curlm->list);
       //if (item->write_data)
-        //php_printf("ptr >>> %s\n", item->write_data);
+        //php_printf("ptr >>> %s %d\n", item->write_data, strlen(item->write_data));
       size--;
     }
     request->curlm->list->cursor = NULL;

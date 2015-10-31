@@ -66,7 +66,7 @@ struct _jsr_curl_item_t {
     FILE    *fp;
 
     size_t (*write_callback)(char *ptr, size_t size, size_t nmemb, void *ctx);
-    char *write_data;
+    char write_data[8192];
     size_t write_length;
 };
 

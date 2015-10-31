@@ -145,6 +145,7 @@ jsr_curl_item_new(char *url, size_t url_size, char *field, size_t field_size)
 
     item->timeout = 5;
 
+    memset(item->write_data, 0, 8192);
     //item->fp = fopen("curl_data.txt", "ab+");
 
     return item;
@@ -284,7 +285,7 @@ jsr_curlm_add_post(jsr_curlm_t *self)
 
     while (size > 0){
         item = jsr_list_next(self->list);
-        php_printf("%d, %d\n", self->multi_handle, item->curl_handle);
+        //php_printf("%d, %d\n", self->multi_handle, item->curl_handle);
         curl_multi_add_handle(self->multi_handle, item->curl_handle);
         size--;
     }
