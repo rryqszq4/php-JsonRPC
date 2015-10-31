@@ -127,16 +127,13 @@ jsr_curlm_list_pop(jsr_curlm_t *self)
 }
 
 jsr_curl_item_t *
-jsr_curl_item_new(char *url, char *field, size_t field_size)
+jsr_curl_item_new(char *url, size_t url_size, char *field, size_t field_size)
 {
     jsr_curl_item_t *item = (jsr_curl_item_t *)malloc(sizeof(jsr_curl_item_t));
     if (!item)
         return NULL;
 
     item->curl_handle = curl_easy_init();
-
-    int url_size;
-    url_size = strlen(url);
 
     memset(item->url, 0, 128);
     strcpy(item->url, url);
@@ -287,6 +284,7 @@ jsr_curlm_add_post(jsr_curlm_t *self)
 
     while (size > 0){
         item = jsr_list_next(self->list);
+        php_printf("%d, %d\n", self->multi_handle, item->curl_handle);
         curl_multi_add_handle(self->multi_handle, item->curl_handle);
         size--;
     }

@@ -157,16 +157,16 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
   size_t length = size * nmemb;
   item->write_length = length;
 
-  item->write_data = (char *)malloc(length+1);
+  //item->write_data = (char *)malloc(length+1);
 
-  memset(item->write_data, '\0', length+1);
+  //memset(item->write_data, '\0', length+1);
 
 
-  memcpy(item->write_data, ptr, length);
+  //strncpy(item->write_data, ptr, length);
   
 
   //printf("ptr >>> [%s] %d\n", ptr ,strlen(ptr));
-  printf("data >>> %s %d %d\n", item->write_data, strlen(item->write_data), item->write_length);
+  //printf("data >>> %s %d %d\n", item->write_data, strlen(item->write_data), item->write_length);
 
   return length;
 }
@@ -180,19 +180,21 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
 
   jsr_curl_item_t *item;
   size_t size;
+  int res;
 
   while ((size = jsr_list_size(jsr_request->curlm->list)) > 0){
     //php_printf("size >>> %d\n", size);
     //item = jsr_curlm_list_pop(jsr_request->curlm);
-    item = jsr_list_next(jsr_request->curlm->list);
-    curl_multi_remove_handle(jsr_request->curlm->multi_handle, item->curl_handle);
+    item = jsr_list_pop(jsr_request->curlm->list);
 
     if (item->write_data){
-      free(item->write_data);
-      item->write_data = NULL;
+      //php_printf("data >>> %s", item->write_data);
+      //free(item->write_data);
+      //item->write_data = NULL;
     }
 
-    jsr_list_remove(jsr_request->curlm->list, item);
+    res = curl_multi_remove_handle(jsr_request->curlm->multi_handle, item->curl_handle);
+     php_printf("%d %d, %d\n", res, jsr_request->curlm->multi_handle, item->curl_handle);
 
     jsr_curl_item_destroy(&item);
 
@@ -411,20 +413,19 @@ PHP_METHOD(jsonrpc_client, call)
 
   jsr_curl_item = jsr_curl_item_new(
       Z_STRVAL_P(url),
+      Z_STRLEN_P(url),
       Z_STRVAL_P(payload),
       Z_STRLEN_P(payload)
     );
   jsr_curl_item->write_callback = _write_callback;
   jsr_curl_item_setopt(jsr_curl_item);
 
-  jsr_curlm_list_append(request->curlm, jsr_curl_item);
+  //jsr_curlm_list_append(request->curlm, jsr_curl_item);
 
   
-  //jsr_curlm_list_push(request->curlm, (jsr_curl_item_t *)jsr_curl_item);
+  jsr_curlm_list_push(request->curlm, (jsr_curl_item_t *)jsr_curl_item);
 
 
-
-  jsr_curlm_add_post(request->curlm);
 
 }
 
@@ -476,6 +477,8 @@ PHP_METHOD(jsonrpc_client, execute)
 
   //printf(">>> list_size : %d\n", jsr_list_size(request->curlm->list));
 
+  jsr_curlm_add_post(request->curlm);
+
   request->curlm->running_handles = 1;
   request->epoll->loop_total = 0;
   while (request->curlm->running_handles > 0)
@@ -505,18 +508,18 @@ PHP_METHOD(jsonrpc_client, execute)
 
   }
 
-  /*jsr_curl_item_t *item;
+  jsr_curl_item_t *item;
     size_t size;
     size = jsr_list_size(request->curlm->list);
     php_printf("size >>> %d\n", size);
     while (size > 0){
       item = jsr_list_next(request->curlm->list);
-      if (item->write_data)
-        php_printf("ptr >>> %s %d\n", item->write_data, strlen(item->write_data));
+      //if (item->write_data)
+        //php_printf("ptr >>> %s\n", item->write_data);
       size--;
     }
     request->curlm->list->cursor = NULL;
-*/
+
 /*#####################*/
   //RETVAL_ZVAL(response, 1, 0);
 
