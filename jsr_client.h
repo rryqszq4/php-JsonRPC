@@ -45,10 +45,24 @@ static zend_class_entry *php_jsonrpc_client_request_entry;
 static zend_object_handlers jsr_request_object_handlers;
 
 static int _php_count_recursive(zval *array, long mode TSRMLS_DC);
-static zval* _jsr_client_prepare_request(zval *procedure, zval *params);
+
+static zval* _jsr_client_prepare_request(zval *procedure, zval *params TSRMLS_DC);
+
 static int _socket_callback(CURL *easy, curl_socket_t fd, int action, void *u, void *s);
 static int _timer_callback(CURLM *multi, long timeout_ms, void *u);
 
+static zend_object_value _php_jsr_request_object_new(zend_class_entry *class_type TSRMLS_DC);
+static void _php_jsr_request_object_free_storage(void *object TSRMLS_DC);
+
+static size_t _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx);
+
+PHP_METHOD(jsonrpc_client, __construct);
+PHP_METHOD(jsonrpc_client, __destruct);
+PHP_METHOD(jsonrpc_client, call);
+PHP_METHOD(jsonrpc_client, execute);
+PHP_METHOD(jsonrpc_client, dorequest);
+
+void jsonrpc_client_init();
 /*
  * Local variables:
  * tab-width: 4
