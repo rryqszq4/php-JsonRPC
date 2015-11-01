@@ -21,6 +21,8 @@
 #ifndef PHP_JSR_SERVER_H
 #define PHP_JSR_SERVER_H
 
+static zend_class_entry *php_jsonrpc_server_entry;
+
 #endif
 
 /*

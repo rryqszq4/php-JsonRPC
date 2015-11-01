@@ -33,8 +33,8 @@
 #include "php_jsonrpc.h"
 
 #include "jsr_server.h"
+#include "jsr_utils.h"
 
-extern zend_class_entry *php_jsonrpc_server_entry;
 
 /** {{{ ARG_INFO
  *  */
@@ -79,6 +79,89 @@ ZEND_BEGIN_ARG_INFO_EX(jsonrpc_server_getresponse_arginfo, 0, 0, 2)
     ZEND_ARG_INFO(0, payload)
 ZEND_END_ARG_INFO()
 /* }}} */
+
+static zval* jr_file_get_contents()
+{
+  zval *payload;
+
+  MAKE_STD_ZVAL(payload);
+
+  zend_bool use_include_path = 0;
+  php_stream *stream;
+  int len;
+  long offset = -1;
+  long maxlen = PHP_STREAM_COPY_ALL;
+  zval *zcontext = NULL;
+  php_stream_context *context = NULL;
+
+  char *contents;
+
+  
+
+  context = php_stream_context_from_zval(zcontext, 0);
+
+  stream = php_stream_open_wrapper_ex("php://input", "rb",
+        (use_include_path ? USE_PATH : 0) | ENFORCE_SAFE_MODE | REPORT_ERRORS,
+        NULL, context);
+
+  
+  if (!stream) {
+    ZVAL_NULL(payload);
+    php_stream_close(stream);
+    return payload;
+  }
+
+  if (offset > 0 && php_stream_seek(stream, offset, SEEK_SET) < 0) {
+    php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed to seek to position %ld in the stream", offset);
+    php_stream_close(stream);
+    ZVAL_NULL(payload);
+    return payload;
+  }
+
+  if ((len = php_stream_copy_to_mem(stream, &contents, maxlen, 0)) > 0) {
+
+    if (PG(magic_quotes_runtime)) {
+      contents = php_addslashes(contents, len, &len, 1 TSRMLS_CC); 
+    }
+
+    ZVAL_STRINGL(payload, contents, len, 1);
+    php_stream_close(stream);
+    return payload;
+  } else if (len == 0) {
+    ZVAL_STRING(payload, "", 1);
+    php_stream_close(stream);
+    return payload;
+  } else {
+    ZVAL_NULL(payload);
+    php_stream_close(stream);
+    return payload;
+  }
+  
+}
+
+static zval* jr_server_get_arguments(zval *request_params, zval *method_params,
+  int nb_required_params, int nb_max_params)
+{
+  zval *retval;
+  int nb_params;
+
+  MAKE_STD_ZVAL(retval);
+
+  nb_params = php_count_recursive(request_params, 0 TSRMLS_CC);
+
+  if (nb_params < nb_required_params){
+    ZVAL_FALSE(retval);
+    return retval;
+  }
+
+  if (nb_params > nb_max_params){
+    ZVAL_FALSE(retval);
+    return retval;
+  }
+
+  ZVAL_TRUE(retval);
+  return retval;
+}
 
 PHP_METHOD(jsonrpc_server, __construct)
 {
@@ -655,7 +738,7 @@ PHP_METHOD(jsonrpc_server, getresponse)
 
 }
 
-zend_function_entry jsonrpc_server_class_functions[] = {
+static const zend_function_entry jsonrpc_server_class_functions[] = {
     PHP_ME(jsonrpc_server,    __construct,        jsonrpc_server_construct_arginfo,           ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
     PHP_ME(jsonrpc_server,    register,           jsonrpc_server_register_arginfo,            ZEND_ACC_PUBLIC)
     PHP_ME(jsonrpc_server,    bind,               jsonrpc_server_bind_arginfo,                ZEND_ACC_PUBLIC)
@@ -667,6 +750,14 @@ zend_function_entry jsonrpc_server_class_functions[] = {
     PHP_ME(jsonrpc_server,    getresponse,        jsonrpc_server_getresponse_arginfo,         ZEND_ACC_PUBLIC)
     {NULL, NULL, NULL}
 };
+
+void
+jsonrpc_server_init()
+{
+  zend_class_entry jsonrpc_server_class_entry;
+  INIT_CLASS_ENTRY(jsonrpc_server_class_entry, "Jsonrpc_Server", jsonrpc_server_class_functions);
+  php_jsonrpc_server_entry = zend_register_internal_class(&jsonrpc_server_class_entry TSRMLS_CC);
+}
 
 /*
  * Local variables:

@@ -141,6 +141,8 @@ PHP_MINIT_FUNCTION(jsonrpc)
 */
 	jsonrpc_client_init();
 
+	jsonrpc_server_init();
+
 	return SUCCESS;
 }
 /* }}} */
