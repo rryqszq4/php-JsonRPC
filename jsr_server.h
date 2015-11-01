@@ -23,6 +23,22 @@
 
 static zend_class_entry *php_jsonrpc_server_entry;
 
+static zval* jr_file_get_contents();
+static zval* jr_server_get_arguments(zval *request_params, zval *method_params,
+  int nb_required_params, int nb_max_params);
+
+PHP_METHOD(jsonrpc_server, __construct);
+PHP_METHOD(jsonrpc_server, register);
+PHP_METHOD(jsonrpc_server, bind);
+PHP_METHOD(jsonrpc_server, execute);
+PHP_METHOD(jsonrpc_server, jsonformat);
+PHP_METHOD(jsonrpc_server, rpcformat);
+PHP_METHOD(jsonrpc_server, executeprocedure);
+PHP_METHOD(jsonrpc_server, executecallback);
+PHP_METHOD(jsonrpc_server, getresponse);
+
+void jsonrpc_server_init();
+
 #endif
 
 /*
