@@ -27,6 +27,7 @@
 #include "ext/standard/info.h"
 #include "ext/standard/basic_functions.h"
 #include "ext/standard/php_rand.h"
+#include "ext/standard/php_smart_str.h"
 #include "SAPI.h"
 #include "ext/json/php_json.h"
 #include "ext/standard/file.h"
@@ -102,12 +103,13 @@ _jsr_client_prepare_request(zval *procedure, zval *params TSRMLS_DC)
   add_assoc_string(payload, "jsonrpc", "2.0", 0);
   add_assoc_string(payload, "method", Z_STRVAL_P(procedure), 0);
 
-  if (!BG(mt_rand_is_seeded)) {
+  /*if (!BG(mt_rand_is_seeded)) {
     php_mt_srand(GENERATE_SEED() TSRMLS_CC);
   }
   number = (long) (php_mt_rand(TSRMLS_C) >> 1);
   add_assoc_long(payload, "id", number);
-
+*/
+  add_assoc_long(payload, "id", 123456);
   nb_params = _php_count_recursive(params, 0 TSRMLS_CC);
   if (nb_params > 0)
   {
@@ -157,18 +159,18 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
   size_t length = size * nmemb;
   item->write_length = length;
 
-  //item->write_data = (char *)malloc(length+1);
-
-  //memset(item->write_data, '\0', length+1);
 
   //php_printf("ptr: >>> %s <<<%d\n", ptr, strlen(ptr));
-  strncpy(item->write_data, ptr, length);
+  //strncpy(item->write_data, ptr, length);
+  memcpy(item->write_data, ptr, length);
+  
   //php_printf("data: >>> %s <<<%d\n", item->write_data, strlen(item->write_data));
   
 
   //printf("ptr >>> [%s] %d\n", ptr ,strlen(ptr));
-  //printf("data >>> %s %d %d\n", item->write_data, strlen(item->write_data), item->write_length);
+  php_printf("data >>> %s %d %d\n", item->write_data, strlen(item->write_data), item->write_length);
 
+  //free(item->write_data);
   return length;
 }
 
@@ -436,6 +438,7 @@ PHP_METHOD(jsonrpc_client, execute)
   zval *params;
   zval *payload;
   zval *response;
+  zval *response_tmp;
   php_jsr_reuqest_object *request;
 
   zval *object;
@@ -457,6 +460,8 @@ PHP_METHOD(jsonrpc_client, execute)
       );
   request = (php_jsr_reuqest_object *)zend_object_store_get_object(request_obj TSRMLS_CC);
 
+  MAKE_STD_ZVAL(response);
+  array_init(response);
 
   /*MAKE_STD_ZVAL(response);
   MAKE_STD_ZVAL(payload);
@@ -484,7 +489,7 @@ PHP_METHOD(jsonrpc_client, execute)
   request->epoll->loop_total = 0;
   while (request->curlm->running_handles > 0)
   {
-    request->epoll->loop_total = jsr_epoll_loop(request->epoll , 10);
+    request->epoll->loop_total = jsr_epoll_loop(request->epoll , 1);
 
     if (request->epoll->loop_total == 0){
       curl_multi_socket_action(request->curlm->multi_handle, CURL_SOCKET_TIMEOUT, 0, &(request->curlm->running_handles));
@@ -515,14 +520,21 @@ PHP_METHOD(jsonrpc_client, execute)
     //php_printf("size >>> %d\n", size);
     while (size > 0){
       item = jsr_list_next(request->curlm->list);
-      //if (item->write_data)
-        //php_printf("ptr >>> %s %d\n", item->write_data, strlen(item->write_data));
+
+      //php_json_decode(response_tmp, item->write_data, item->write_length, 1, 512 TSRMLS_CC);
+      //jsr_dump_zval(response_tmp);
+      //add_next_index_zval(response,response_tmp);
+      if (item->write_data){
+        //php_printf("data >>> %s %d %d\n", item->write_data, strlen(item->write_data), item->write_length);
+      }
+
+      
       size--;
     }
     request->curlm->list->cursor = NULL;
 
 /*#####################*/
-  //RETVAL_ZVAL(response, 1, 0);
+  RETVAL_ZVAL(response, 1, 0);
 
 }
 

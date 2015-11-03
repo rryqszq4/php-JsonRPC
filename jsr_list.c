@@ -24,6 +24,7 @@ jsr_list_t *
 jsr_list_new(void)
 {
     jsr_list_t *self = (jsr_list_t *)malloc(sizeof(jsr_list_t));
+    self->size = 0;
     return self;
 }
 
