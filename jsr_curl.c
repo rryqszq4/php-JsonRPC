@@ -127,7 +127,7 @@ jsr_curlm_list_pop(jsr_curlm_t *self)
 }
 
 jsr_curl_item_t *
-jsr_curl_item_new(char *url, size_t url_size, char *field, size_t field_size)
+jsr_curl_item_new(zval *object, char *url, size_t url_size, char *field, size_t field_size)
 {
     jsr_curl_item_t *item = (jsr_curl_item_t *)malloc(sizeof(jsr_curl_item_t));
     if (!item)
@@ -145,7 +145,9 @@ jsr_curl_item_new(char *url, size_t url_size, char *field, size_t field_size)
 
     item->timeout = 5;
 
-    memset(item->write_data, 0, 8192);
+    //memset(item->write_data, 0, 8192);
+
+    item->object = object;
     //item->fp = fopen("curl_data.txt", "ab+");
 
     return item;
