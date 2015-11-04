@@ -47,16 +47,6 @@ static int le_curl;
 static int  le_curl_multi_handle;
 #define le_curl_multi_handle_name "cURL Multi Handle"
 
-#define SAVE_CURL_ERROR(__handle, __err) (__handle)->err.no = (int) __err;
-
-/* As of curl 7.11.1 this is no longer defined inside curl.h */
-#ifndef HttpPost
-#define HttpPost curl_httppost
-#endif
-
-
-static zend_class_entry *php_jsonrpc_server_entry;
-
 /* {{{ jsonrpc_functions[]
  *
  * Every user visible function must have an entry in jsonrpc_functions[].

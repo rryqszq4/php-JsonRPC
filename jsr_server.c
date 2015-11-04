@@ -139,6 +139,35 @@ static zval* jr_file_get_contents()
   
 }
 
+static int _php_count_recursive(zval *array, long mode TSRMLS_DC) /* {{{ */
+{
+  long cnt = 0;
+  zval **element;
+
+  if (Z_TYPE_P(array) == IS_ARRAY) {
+    if (Z_ARRVAL_P(array)->nApplyCount > 1) {
+      php_error_docref(NULL TSRMLS_CC, E_WARNING, "recursion detected");
+      return 0;
+    }
+
+    cnt = zend_hash_num_elements(Z_ARRVAL_P(array));
+    if (mode == COUNT_RECURSIVE) {
+      HashPosition pos;
+
+      for (zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(array), &pos);
+        zend_hash_get_current_data_ex(Z_ARRVAL_P(array), (void **) &element, &pos) == SUCCESS;
+        zend_hash_move_forward_ex(Z_ARRVAL_P(array), &pos)
+      ) {
+        Z_ARRVAL_P(array)->nApplyCount++;
+        cnt += _php_count_recursive(*element, COUNT_RECURSIVE TSRMLS_CC);
+        Z_ARRVAL_P(array)->nApplyCount--;
+      }
+    }
+  }
+
+  return cnt;
+}
+
 static zval* jr_server_get_arguments(zval *request_params, zval *method_params,
   int nb_required_params, int nb_max_params)
 {
@@ -147,7 +176,7 @@ static zval* jr_server_get_arguments(zval *request_params, zval *method_params,
 
   MAKE_STD_ZVAL(retval);
 
-  nb_params = php_count_recursive(request_params, 0 TSRMLS_CC);
+  nb_params = _php_count_recursive(request_params, 0 TSRMLS_CC);
 
   if (nb_params < nb_required_params){
     ZVAL_FALSE(retval);
@@ -229,7 +258,7 @@ PHP_METHOD(jsonrpc_server, register)
   }
 
   if (Z_TYPE_P(closure) == IS_OBJECT){
-    fptr = (zend_function*)zend_get_closure_method_def(closure TSRMLS_CC);
+    fptr = (zend_function* )zend_get_closure_method_def(closure TSRMLS_CC);
     Z_ADDREF_P(closure);
   }else if (Z_TYPE_P(closure) == IS_STRING){
     char *nsname;
@@ -239,7 +268,7 @@ PHP_METHOD(jsonrpc_server, register)
 
     lcname = zend_str_tolower_dup(name_str, name_len);
 
-    /* Ignore leading "\" */
+    // Ignore leading "\" 
     nsname = lcname;
     if (lcname[0] == '\\') {
       nsname = &lcname[1];
@@ -255,6 +284,7 @@ PHP_METHOD(jsonrpc_server, register)
     efree(lcname);
   }
 
+
   callbacks = zend_read_property(
     php_jsonrpc_server_entry, object, "callbacks", sizeof("callbacks")-1, 0 TSRMLS_CC
   );
@@ -263,9 +293,11 @@ PHP_METHOD(jsonrpc_server, register)
 
   zend_create_closure(val, fptr TSRMLS_CC);
   //shurrik_dump_zval(val);
+  //jsr_dump_val(name);
+  //jsr_dump_val(val);
   add_assoc_zval(callbacks, Z_STRVAL_P(name), val);
 
-  zend_update_property(php_jsonrpc_server_entry, object, "callbacks", sizeof(callbacks)-1, callbacks TSRMLS_CC);
+  zend_update_property(php_jsonrpc_server_entry, object, "callbacks", sizeof("callbacks")-1, callbacks TSRMLS_CC);
 
   RETURN_ZVAL(object,1,0);
 
@@ -539,20 +571,21 @@ PHP_METHOD(jsonrpc_server, executeprocedure)
     
   }
 
+
+  MAKE_STD_ZVAL(retval);
+    
   callbacks = zend_read_property(
       php_jsonrpc_server_entry, object, "callbacks", sizeof("callbacks")-1, 0 TSRMLS_CC
     );
 
-  if (zend_symtable_exists(Z_ARRVAL_P(callbacks), Z_STRVAL_P(procedure), Z_STRLEN_P(procedure) + 1))
+  if (zend_hash_exists(Z_ARRVAL_P(callbacks), Z_STRVAL_P(procedure), Z_STRLEN_P(procedure) + 1))
   {
     if (zend_hash_find(Z_ARRVAL_P(callbacks), Z_STRVAL_P(procedure), Z_STRLEN_P(procedure)+1, (void **)&procedure_params) == FAILURE)
     {
 
     }
-
-    MAKE_STD_ZVAL(retval);
     MAKE_STD_ZVAL(func);
-    ZVAL_STRINGL(func, "executecallback", sizeof("executecallback") - 1, 0);
+    ZVAL_STRINGL(func, "executecallback", sizeof("executecallback") - 1, 1);
     func_params = emalloc(sizeof(zval *) * 2);
     //shurrik_dump_zval(*procedure_params);
     func_params[0] = *procedure_params;
@@ -562,14 +595,17 @@ PHP_METHOD(jsonrpc_server, executeprocedure)
 
     efree(func_params);
 
-    RETVAL_ZVAL(retval, 1, 0);
-    /*if (Z_TYPE_P(retval) == IS_BOOL){
-      RETVAL_FALSE;
-    }else {
-      RETVAL_NULL();
-    }*/
-    return ;
+    //
+    //if (Z_TYPE_P(retval) == IS_BOOL){
+    //  RETVAL_FALSE;
+    //}else {
+    //  RETVAL_NULL();
+    //}
+    //return ;
+    
   }
+
+  RETVAL_ZVAL(retval, 1, 0);
   
 }
 
@@ -598,6 +634,7 @@ PHP_METHOD(jsonrpc_server, executecallback)
     //Z_ADDREF_P(closure);
   }
 
+
   if (!closure || !zend_is_callable(closure, 0, NULL TSRMLS_CC))
   {
     php_error_docref(NULL TSRMLS_CC, E_WARNING, "closeure is not expected to be a valid callback");
@@ -607,7 +644,7 @@ PHP_METHOD(jsonrpc_server, executecallback)
 
   MAKE_STD_ZVAL(closure_result_ptr);
 
-  func_params_num = php_count_recursive(params, 0 TSRMLS_CC);
+  func_params_num = _php_count_recursive(params, 0 TSRMLS_CC);
   func_params = emalloc(sizeof(zval *) * func_params_num);
 
   zval              **current;
@@ -724,6 +761,9 @@ PHP_METHOD(jsonrpc_server, getresponse)
   }else if(Z_TYPE_PP(id) == IS_STRING){
     convert_to_string(*id);
     add_assoc_string(response, "id", Z_STRVAL_PP(id), 0);
+  }else if (Z_TYPE_PP(id) == IS_LONG){
+    convert_to_long(*id);
+    add_assoc_long(response, "id", Z_LVAL_PP(id));
   }
 
   zend_hash_merge(Z_ARRVAL_P(response), Z_ARRVAL_P(data), NULL, NULL, sizeof(zval *), 1);
