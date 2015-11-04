@@ -1,14 +1,13 @@
 JsonRPC 2.0 Client and Server
 =============================
 
-轻量级 Json-RPC 2.0 客户端和服务端的php扩展，基于libcurl + epoll的并发客户端。
-[英文](https://github.com/rryqszq4/JsonRPC/README-cn.md)
+Lightweight multi Json-RPC 2.0 client/server in php extension
 
-环境
+Requirement
 -----------
-- PHP 5.3 
+- PHP 5.3 +
 
-安装
+Install
 -------
 ```
 $/path/to/phpize
@@ -16,21 +15,24 @@ $./configure --with-php-config=/path/to/php-config
 $make && make install
 ```
 
-例子
+Examples
 --------
 
-### 服务端
-server.php:
+### Server
+Callback binding:
 
 ```php
 <?php
 
 $server = new Jsonrpc_Server();
 
+// Procedures registration
+
 $server->register('addition', function ($a, $b) {
     return $a + $b;
 });
 
+// Return the response to the client
 echo $server->execute();
 
 //output >>>
@@ -81,15 +83,15 @@ echo $server->execute();
 ```
 
 
-### 客户端
-client.php:
+### Client
+Example with positional parameters:
 
 ```php
 <?php
 
 $client = new Jsonrpc_Client();
 $client->call('http://localhost/server.php','addition', array(3,5));
-$client->call('http://localhost/server.php', "addition", array(10,20));
+$client->call('http://yaf-lib.com/rpc/json', "addition", array(10,20));
 /* ... */
 $result = $client->execute();
 
