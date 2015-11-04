@@ -96,20 +96,24 @@ _jsr_client_prepare_request(zval *procedure, zval *params TSRMLS_DC)
   zval *payload;
   long number;
   int nb_params;
+  zval *id;
 
   MAKE_STD_ZVAL(payload);
   array_init(payload);
+  MAKE_STD_ZVAL(id);
 
   add_assoc_string(payload, "jsonrpc", "2.0", 0);
   add_assoc_string(payload, "method", Z_STRVAL_P(procedure), 0);
 
-  /*if (!BG(mt_rand_is_seeded)) {
+  if (!BG(mt_rand_is_seeded)) {
     php_mt_srand(GENERATE_SEED() TSRMLS_CC);
   }
+  
   number = (long) (php_mt_rand(TSRMLS_C) >> 1);
-  add_assoc_long(payload, "id", number);
-*/
-  add_assoc_long(payload, "id", 123456);
+  ZVAL_LONG(id, number);
+  add_assoc_long(payload, "id", Z_LVAL_P(id));
+
+  //add_assoc_long(payload, "id", 123456);
   nb_params = _php_count_recursive(params, 0 TSRMLS_CC);
   if (nb_params > 0)
   {
@@ -159,8 +163,10 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
   zval *object;
   zval *response;
   zval *tmp;
+  zval *response_tmp;
 
   MAKE_STD_ZVAL(tmp);
+  MAKE_STD_ZVAL(response_tmp);
 
   object = item->object;
 
@@ -173,9 +179,14 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
 
   ZVAL_STRINGL(tmp, ptr, length, 1);
 
-  add_next_index_zval(response,tmp);
+  php_json_decode(response_tmp, Z_STRVAL_P(tmp), Z_STRLEN_P(tmp), 1, 512 TSRMLS_CC);
+
+  add_next_index_zval(response,response_tmp);
 
   zend_update_property(php_jsonrpc_client_entry, object, "response", sizeof(response)-1, response TSRMLS_CC);
+
+  //zval_ptr_dtor(&tmp);
+  //zval_ptr_dtor(&response_tmp);
 
   //jsr_dump_zval(response);
 
@@ -535,7 +546,7 @@ PHP_METHOD(jsonrpc_client, execute)
   );
 
   //jsr_dump_zval(response);
-
+/*
   jsr_curl_item_t *item;
     size_t size;
     size = jsr_list_size(request->curlm->list);
@@ -551,7 +562,7 @@ PHP_METHOD(jsonrpc_client, execute)
       size--;
     }
     request->curlm->list->cursor = NULL;
-
+*/
 /*#####################*/
   RETVAL_ZVAL(response, 1, 0);
 
