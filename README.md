@@ -2,7 +2,7 @@ JsonRPC 2.0 Client and Server
 =============================
 
 轻量级 Json-RPC 2.0 客户端和服务端的php扩展，基于libcurl + epoll的并发客户端。
-[英文](https://github.com/rryqszq4/JsonRPC/README-en.md)
+[英文](https://github.com/rryqszq4/JsonRPC/blob/master/README-en.md)
 
 环境
 -----------
