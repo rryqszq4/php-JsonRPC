@@ -6,7 +6,8 @@ JsonRPC 2.0 Client and Server
 
 环境
 -----------
-- PHP 5.3 
+- PHP 5.3.*
+- PHP 5.4.* 
 
 安装
 -------
@@ -27,50 +28,22 @@ server.php:
 
 $server = new Jsonrpc_Server();
 
-$server->register('addition', function ($a, $b) {
+// style function one
+$add1 = function($a, $b){
+	return $a + $b;
+}
+$server->register('addition1', $add1);
+
+// style function two
+function add2($a, $b){
+  return $a + $b;
+}
+$server->register('addition2', 'add2');
+
+// style function three
+$server->register('addition3', function ($a, $b) {
     return $a + $b;
 });
-
-echo $server->execute();
-
-//output >>>
-//{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}
-
-?>
-```
-or
-
-```php
-<?php
-
-$server = new Jsonrpc_Server();
-
-$add = function($a, $b){
-	return $a + $b;
-}
-
-$server->register('addition', $add);
-
-echo $server->execute();
-
-//output >>>
-//{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}
-
-?>
-```
-
-or
-
-```php
-<?php
-
-$server = new Jsonrpc_Server();
-
-function add($a, $b){
-	return $a + $b;
-}
-
-$server->register('addition', 'add');
 
 echo $server->execute();
 
