@@ -247,6 +247,7 @@ _php_jsr_request_object_new(zend_class_entry *class_type TSRMLS_DC)
   memset(&jsr_request->zo, 0, sizeof(zend_object));
 
   zend_object_std_init(&jsr_request->zo, class_type TSRMLS_CC);
+#if PHP_VERSION_ID < 50399
   zend_hash_copy(
     jsr_request->zo.properties, 
     &class_type->default_properties,
@@ -254,6 +255,9 @@ _php_jsr_request_object_new(zend_class_entry *class_type TSRMLS_DC)
     (void *)&tmp,
     sizeof(zval *)
     );
+#else
+  object_properties_init( &jsr_request->zo, class_type );
+#endif
 
   jsr_request->epoll = NULL;
   jsr_request->curlm = NULL;

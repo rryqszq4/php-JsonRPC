@@ -119,11 +119,13 @@ static zval* jr_file_get_contents()
   }
 
   if ((len = php_stream_copy_to_mem(stream, &contents, maxlen, 0)) > 0) {
-
+#if PHP_API_VERSION < 20100412
     if (PG(magic_quotes_runtime)) {
-      contents = php_addslashes(contents, len, &len, 1 TSRMLS_CC); 
+      int newlen;
+      contents = php_addslashes(contents, len, &newlen, 1 TSRMLS_CC); 
+      len = newlen;
     }
-
+#endif
     ZVAL_STRINGL(payload, contents, len, 1);
     php_stream_close(stream);
     return payload;
@@ -197,9 +199,11 @@ PHP_METHOD(jsonrpc_server, __construct)
   zval *payload, *callbacks, *classes;
   zval *object = getThis();
 
-  ALLOC_INIT_ZVAL(payload);
+  MAKE_STD_ZVAL(payload);
   MAKE_STD_ZVAL(callbacks);
+  array_init(callbacks);
   MAKE_STD_ZVAL(classes);
+  array_init(classes);
 
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|zzz", 
     &payload, &callbacks, &classes) == FAILURE)
@@ -214,27 +218,20 @@ PHP_METHOD(jsonrpc_server, __construct)
     add_property_zval(object, "payload", payload);
   }
 
+
   if (Z_TYPE_P(callbacks) == IS_ARRAY){
     add_property_zval(object, "callbacks", callbacks);
   }else {
-    array_init(callbacks);
     add_property_zval(object, "callbacks", callbacks);
   }
   
   if (Z_TYPE_P(classes) == IS_ARRAY){
     add_property_zval(object, "classes", classes);
   }else {
-    array_init(classes);
     add_property_zval(object, "classes", classes);
   }
 
-  //payload = NULL;
-  payload = zend_read_property(
-      php_jsonrpc_server_entry, getThis(), "payload", sizeof("payload")-1, 0 TSRMLS_CC
-    );
-  //php_var_dump(&payload, 1 TSRMLS_CC);
 
-  //php_printf("jsonrpc_server new\n");
 }
 
 PHP_METHOD(jsonrpc_server, register)
@@ -291,10 +288,13 @@ PHP_METHOD(jsonrpc_server, register)
 
   MAKE_STD_ZVAL(val);
 
+#if PHP_VERSION_ID < 50399
   zend_create_closure(val, fptr TSRMLS_CC);
-  //shurrik_dump_zval(val);
-  //jsr_dump_val(name);
-  //jsr_dump_val(val);
+#else
+  zend_create_closure(val, fptr, NULL, NULL TSRMLS_CC);
+#endif
+
+
   add_assoc_zval(callbacks, Z_STRVAL_P(name), val);
 
   zend_update_property(php_jsonrpc_server_entry, object, "callbacks", sizeof("callbacks")-1, callbacks TSRMLS_CC);
@@ -794,9 +794,11 @@ static const zend_function_entry jsonrpc_server_class_functions[] = {
 void
 jsonrpc_server_init()
 {
+
   zend_class_entry jsonrpc_server_class_entry;
   INIT_CLASS_ENTRY(jsonrpc_server_class_entry, "Jsonrpc_Server", jsonrpc_server_class_functions);
   php_jsonrpc_server_entry = zend_register_internal_class(&jsonrpc_server_class_entry TSRMLS_CC);
+
 }
 
 /*
