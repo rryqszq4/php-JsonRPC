@@ -8,6 +8,7 @@ JsonRPC 2.0 Client and Server
 -----------
 - PHP 5.3.*
 - PHP 5.4.* 
+- PHP 5.6.* 
 
 安装
 -------
