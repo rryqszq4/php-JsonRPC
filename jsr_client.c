@@ -207,7 +207,20 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
 static void
 _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
 {
+  /*int fd;
+  int ress;
+  char *path = "test.txt";
+  fd = open(path, O_CREAT | O_RDWR | O_APPEND, 0666);
+
+  char buf[2+1] = "\n";
+  char s[100+1];
+*/
+
   php_jsr_reuqest_object *jsr_request = (php_jsr_reuqest_object *) object;
+  CURLMsg *msg;
+  int msgs_left;
+  CURL *easy;
+  CURLcode error_code;
 
   jsr_epoll_destroy(&jsr_request->epoll);
 
@@ -215,14 +228,29 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
   size_t size;
   int res;
 
+  while ((msg = curl_multi_info_read(jsr_request->curlm->multi_handle, &msgs_left)))
+  {
+    if (msg->msg == CURLMSG_DONE){
+      easy = msg->easy_handle;
+      error_code = msg->data.result;
+      curl_multi_remove_handle(jsr_request->curlm->multi_handle, easy);
+      curl_easy_cleanup(easy);
+    }
+  }
+
   while ((size = jsr_list_size(jsr_request->curlm->list)) > 0){
     //php_printf("size >>> %d\n", size);
     //item = jsr_curlm_list_pop(jsr_request->curlm);
     item = jsr_list_pop(jsr_request->curlm->list);
 
-    res = curl_multi_remove_handle(jsr_request->curlm->multi_handle, item->curl_handle);
-     //php_printf("%d %d, %d\n", res, jsr_request->curlm->multi_handle, item->curl_handle);
-
+    /*if (item->curl_handle){
+      memset(s, 0, 100);
+      sprintf(s, "%p, %p, %p", item, jsr_request->curlm->multi_handle, item->curl_handle);
+      write(fd, buf, 2);
+      write(fd, s, 100);
+      res = curl_multi_remove_handle(jsr_request->curlm->multi_handle, item->curl_handle);
+    //php_printf("%d %d, %d\n", res, jsr_request->curlm->multi_handle, item->curl_handle);
+    }*/
     jsr_curl_item_destroy(&item);
 
   }
@@ -231,7 +259,13 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
 
   jsr_curl_global_destroy();
 
+  zend_object_std_dtor(&jsr_request->zo TSRMLS_CC);
+
   efree(jsr_request);
+
+  //ress = fsync(fd);
+
+  //close(fd);
 
   //php_printf("jsr_request_destroy\n");
 }
@@ -241,10 +275,15 @@ _php_jsr_request_object_new(zend_class_entry *class_type TSRMLS_DC)
 {
   zend_object_value result;
   php_jsr_reuqest_object *jsr_request;
+#if PHP_VERSION_ID < 50399
   zval *tmp;
+#endif
 
   jsr_request = (php_jsr_reuqest_object *)emalloc(sizeof(php_jsr_reuqest_object));
   memset(&jsr_request->zo, 0, sizeof(zend_object));
+
+  jsr_request->epoll = NULL;
+  jsr_request->curlm = NULL;
 
   zend_object_std_init(&jsr_request->zo, class_type TSRMLS_CC);
 #if PHP_VERSION_ID < 50399
@@ -259,14 +298,11 @@ _php_jsr_request_object_new(zend_class_entry *class_type TSRMLS_DC)
   object_properties_init( &jsr_request->zo, class_type );
 #endif
 
-  jsr_request->epoll = NULL;
-  jsr_request->curlm = NULL;
-
   //php_printf("jsr_request_new\n");
 
   result.handle = zend_objects_store_put(
       jsr_request,
-      NULL,
+      (zend_objects_store_dtor_t)zend_objects_destroy_object,
       (zend_objects_free_object_storage_t) _php_jsr_request_object_free_storage,
       NULL TSRMLS_CC
     );
@@ -354,7 +390,7 @@ PHP_METHOD(jsonrpc_client, __construct)
 
 PHP_METHOD(jsonrpc_client, __destruct)
 {
-  php_jsr_reuqest_object *request;
+  php_jsr_reuqest_object *jsr_request;
 
   zval *object;
   zval *request_obj;
@@ -365,7 +401,7 @@ PHP_METHOD(jsonrpc_client, __destruct)
       php_jsonrpc_client_entry, object, "request", sizeof("request")-1, 0 TSRMLS_CC
     );
 
-  request = (php_jsr_reuqest_object *)zend_object_store_get_object(request_obj TSRMLS_CC);
+  jsr_request = (php_jsr_reuqest_object *)zend_object_store_get_object(request_obj TSRMLS_CC);
   
 
   /*jsr_node_t *node;
@@ -455,14 +491,12 @@ PHP_METHOD(jsonrpc_client, call)
       Z_STRLEN_P(payload)
     );
   jsr_curl_item->write_callback = _write_callback;
+  
   jsr_curl_item_setopt(jsr_curl_item);
+  curl_multi_add_handle(request->curlm->multi_handle, jsr_curl_item->curl_handle);
+  jsr_curlm_list_push(request->curlm, jsr_curl_item);
 
   //jsr_curlm_list_append(request->curlm, jsr_curl_item);
-
-  
-  jsr_curlm_list_push(request->curlm, (jsr_curl_item_t *)jsr_curl_item);
-
-
 
 }
 
@@ -514,7 +548,7 @@ PHP_METHOD(jsonrpc_client, execute)
 
   //printf(">>> list_size : %d\n", jsr_list_size(request->curlm->list));
 
-  jsr_curlm_add_post(request->curlm);
+  //jsr_curlm_add_post(request->curlm);
 
   request->curlm->running_handles = 1;
   request->epoll->loop_total = 0;

@@ -159,7 +159,8 @@ jsr_curl_item_destroy(jsr_curl_item_t **self_p)
     if (*self_p)
     {
         jsr_curl_item_t *self = *self_p;
-        curl_easy_cleanup(self->curl_handle);
+        //if (self->curl_handle)
+          //curl_easy_cleanup(self->curl_handle);
         //fclose(self->fp);
         free(self);
         *self_p = NULL;
