@@ -241,12 +241,17 @@ PHP_METHOD(jsonrpc_server, register)
   zval *name;
   zval *callbacks;
   char *lcname;
+  char *name_str, *tmp;
+  int name_len, tmp_len;
+  zval *classname;
+
+  zend_class_entry **pce;
+  zend_class_entry *ce;
   zend_function *fptr;
-  char *name_str;
-  int name_len;
 
   zval *object = getThis();
 
+  MAKE_STD_ZVAL(classname);
 
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz", 
     &name, &closure) == FAILURE)
@@ -258,27 +263,55 @@ PHP_METHOD(jsonrpc_server, register)
     fptr = (zend_function* )zend_get_closure_method_def(closure TSRMLS_CC);
     Z_ADDREF_P(closure);
   }else if (Z_TYPE_P(closure) == IS_STRING){
-    char *nsname;
     name_str = Z_STRVAL_P(closure);
     name_len = Z_STRLEN_P(closure);
+    if ((tmp = strstr(name_str, "::")) == NULL) {
+      char *nsname;
 
+      lcname = zend_str_tolower_dup(name_str, name_len);
 
-    lcname = zend_str_tolower_dup(name_str, name_len);
-
-    // Ignore leading "\" 
-    nsname = lcname;
-    if (lcname[0] == '\\') {
+      // Ignore leading "\" 
+      nsname = lcname;
+      if (lcname[0] == '\\') {
       nsname = &lcname[1];
       name_len--;
-    }
-    
-    if (zend_hash_find(EG(function_table), nsname, name_len + 1, (void **)&fptr) == FAILURE) {
+      }
+
+      if (zend_hash_find(EG(function_table), nsname, name_len + 1, (void **)&fptr) == FAILURE) {
+        efree(lcname);
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, 
+          "Function %s() does not exist", name_str);
+        return;
+      }
       efree(lcname);
-      php_error_docref(NULL TSRMLS_CC, E_WARNING, 
-        "Function %s() does not exist", name_str);
-      return;
+    }else {
+      tmp_len = tmp - name_str;
+      ZVAL_STRINGL(classname, name_str, tmp_len, 1);
+      name_len = name_len - (tmp_len + 2);
+      name_str = tmp + 2;
+      //php_printf("classname: %s, method: %s\n", Z_STRVAL_P(classname), name_str);
+      if (zend_lookup_class(Z_STRVAL_P(classname), Z_STRLEN_P(classname), &pce TSRMLS_CC) == FAILURE) {
+        php_error_docref(NULL TSRMLS_CC, E_WARNING,
+          "Class %s does exist", Z_STRVAL_P(classname));
+        //zend_throw_exception_ex(reflection_exception_ptr, 0 TSRMLS_CC,
+        //    "Class %s does not exist", Z_STRVAL_P(classname)); 
+        zval_dtor(classname);
+        return;
+      }
+      ce = *pce;
+
+      lcname = zend_str_tolower_dup(name_str, name_len);
+
+      if (zend_hash_find(&ce->function_table, lcname, name_len + 1, (void **) &fptr) == FAILURE) {
+        efree(lcname);
+        php_error_docref(NULL TSRMLS_CC, E_WARNING,
+          "Method %s::%s() does not exist", ce->name, name_str);
+        //zend_throw_exception_ex(reflection_exception_ptr, 0 TSRMLS_CC, 
+        //  "Method %s::%s() does not exist", ce->name, name_str);
+        return;
+      }
+      efree(lcname);
     }
-    efree(lcname);
   }
 
 
