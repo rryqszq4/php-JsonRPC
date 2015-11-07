@@ -183,7 +183,7 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
 
   add_next_index_zval(response,response_tmp);
 
-  zend_update_property(php_jsonrpc_client_entry, object, "response", sizeof(response)-1, response TSRMLS_CC);
+  zend_update_property(php_jsonrpc_client_entry, object, "response", sizeof("response")-1, response TSRMLS_CC);
 
   //zval_ptr_dtor(&tmp);
   //zval_ptr_dtor(&response_tmp);
