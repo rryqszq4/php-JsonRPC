@@ -29,22 +29,32 @@ server.php:
 
 $server = new Jsonrpc_Server();
 
-// style function one
+// style one function variable
 $add1 = function($a, $b){
 	return $a + $b;
 }
 $server->register('addition1', $add1);
 
-// style function two
+// style two function string
 function add2($a, $b){
   return $a + $b;
 }
 $server->register('addition2', 'add2');
 
-// style function three
+// style three function closure
 $server->register('addition3', function ($a, $b) {
     return $a + $b;
 });
+
+//style four class method string
+class A 
+{
+  static public function add($a, $b)
+  {
+    return $a + $b;
+  }
+}
+$server->register('addition4', 'A::add');
 
 echo $server->execute();
 
@@ -62,8 +72,8 @@ client.php:
 <?php
 
 $client = new Jsonrpc_Client();
-$client->call('http://localhost/server.php','addition', array(3,5));
-$client->call('http://localhost/server.php', "addition", array(10,20));
+$client->call('http://localhost/server.php', 'addition', array(3,5));
+$client->call('http://localhost/server.php', 'addition', array(10,20));
 /* ... */
 $result = $client->execute();
 
