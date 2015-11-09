@@ -42,6 +42,7 @@
 /** {{{ ARG_INFO
  *  */
 ZEND_BEGIN_ARG_INFO_EX(jsonrpc_client_construct_arginfo, 0, 0, 0)
+  ZEND_ARG_INFO(0, persist)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(jsonrpc_client_destruct_arginfo, 0, 0, 0)
@@ -222,7 +223,7 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
   CURL *easy;
   CURLcode error_code;
 
-  jsr_epoll_destroy(&jsr_request->epoll);
+  //jsr_epoll_destroy(&jsr_request->epoll);
 
   jsr_curl_item_t *item;
   size_t size;
@@ -311,11 +312,91 @@ _php_jsr_request_object_new(zend_class_entry *class_type TSRMLS_DC)
   return result;
 }
 
+static php_jsr_epoll_context *
+_php_jsr_epoll_new(zend_bool is_persistent TSRMLS_DC)
+{
+  php_jsr_epoll_context *context;
+  
+  context = pecalloc(1, sizeof(php_jsr_epoll_context), is_persistent);
+  context->epoll = jsr_epoll_init();
+
+  if (!context->epoll){
+    pefree(context, is_persistent);
+    return NULL;
+  }
+
+  context->is_persistent = is_persistent;
+
+  return context;
+}
+
+static php_jsr_epoll_context *
+_php_jsr_epoll_get(zend_bool is_persistent TSRMLS_DC)
+{
+  php_jsr_epoll_context *context;
+
+  char plist_key[48];
+  int plist_key_len;
+  zend_rsrc_list_entry le, *le_p = NULL;
+
+  if (is_persistent){
+    plist_key_len = snprintf(plist_key, 48, "jsonrpc_client_epoll");
+    plist_key_len += 1;
+
+    if (zend_hash_find(&EG(persistent_list), plist_key, plist_key_len, (void *)&le_p) == SUCCESS)
+    {
+      if (le_p->type = le_jsr_epoll_persist){
+        return (php_jsr_epoll_context *) le_p->ptr;
+      }
+    }
+  }
+
+  context = _php_jsr_epoll_new(is_persistent TSRMLS_CC);
+
+  if (!context){
+    return NULL;
+  }
+
+  if (is_persistent){
+    le.type = le_jsr_epoll_persist;
+    le.ptr = context;
+
+    if (zend_hash_update(&EG(persistent_list), (char *)plist_key, plist_key_len, (void *)&le, sizeof(le), NULL) == FAILURE)
+    {
+      php_error_docref(NULL TSRMLS_CC, E_ERROR, "Could not register persistent entry for epoll");
+    }
+  }
+
+  return context;
+
+}
+
+static void
+_php_jsr_epoll_destroy(php_jsr_epoll_context *context)
+{
+  jsr_epoll_destroy(&context->epoll);
+  
+  pefree(context, context->is_persistent);
+
+}
+
+ZEND_RSRC_DTOR_FUNC(_php_jsr_epoll_dtor)
+{
+  if (rsrc->ptr){
+    php_jsr_epoll_context *context = (php_jsr_epoll_context *)rsrc->ptr;
+    _php_jsr_epoll_destroy(context);
+    rsrc->ptr = NULL;
+  }
+}
+
 PHP_METHOD(jsonrpc_client, __construct)
 {
   zval *object;
   zval *response;
 
+  zend_bool persist = 1;
+
+  php_jsr_epoll_context *context;
   php_jsr_reuqest_object *request;
   jsr_epoll_t *epoll;
   jsr_curlm_t *curlm;
@@ -324,15 +405,16 @@ PHP_METHOD(jsonrpc_client, __construct)
 
   object = getThis();
 
-  /*MAKE_STD_ZVAL(timeout_c);
-  ZVAL_LONG(timeout_c, 5);
-
-  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|zz",
-    &_url, &timeout_c, &headers) == FAILURE)
+  //MAKE_STD_ZVAL(timeout_c);
+  //ZVAL_LONG(timeout_c, 5);
+  
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|b",
+    &persist) == FAILURE)
   {
 
   }
 
+  /*
   MAKE_STD_ZVAL(_headers);
   array_init(_headers);
   add_index_string(_headers, 0, estrdup("Content-Type: application/json"), 0);
@@ -360,12 +442,13 @@ PHP_METHOD(jsonrpc_client, __construct)
 
   jsr_curl_global_new();
 
+  context = _php_jsr_epoll_get(persist TSRMLS_CC);
 
   MAKE_STD_ZVAL(request_obj);
   object_init_ex(request_obj, php_jsonrpc_client_request_entry);
   request = (php_jsr_reuqest_object *)zend_object_store_get_object(request_obj TSRMLS_CC);
 
-  request->epoll = jsr_epoll_init();
+  request->epoll = context->epoll;
   request->curlm = jsr_curlm_new();
   //request->epoll->epoll_fd = epoll_create(1024);
 
@@ -772,8 +855,10 @@ static const zend_function_entry jsonrpc_client_class_functions[] = {
 };
 
 void 
-jsonrpc_client_init()
+jsonrpc_client_init(int module_number)
 {
+
+  le_jsr_epoll_persist = zend_register_list_destructors_ex(NULL, _php_jsr_epoll_dtor, "jsonrpc persistent epoll", module_number);
 
   memcpy(&jsr_request_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
 

@@ -37,7 +37,19 @@ typedef struct _php_jsr_request_object {
 
 } php_jsr_reuqest_object;
 
+typedef struct _php_jsr_epoll_context {
+
+  jsr_epoll_t *epoll;
+
+  zend_bool is_persistent;
+
+  //zend_bool is_global;
+
+} php_jsr_epoll_context;
+
 #endif
+
+static le_jsr_epoll_persist;
 
 static zend_class_entry *php_jsonrpc_client_entry;
 static zend_class_entry *php_jsonrpc_client_request_entry;
@@ -56,13 +68,18 @@ static void _php_jsr_request_object_free_storage(void *object TSRMLS_DC);
 
 static size_t _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx);
 
+static php_jsr_epoll_context *_php_jsr_epoll_new(zend_bool is_persistent TSRMLS_DC);
+static php_jsr_epoll_context *_php_jsr_epoll_get(zend_bool is_persistent TSRMLS_DC);
+static void _php_jsr_epoll_destroy(php_jsr_epoll_context *context);
+ZEND_RSRC_DTOR_FUNC(_php_jsr_epoll_dtor);
+
 PHP_METHOD(jsonrpc_client, __construct);
 PHP_METHOD(jsonrpc_client, __destruct);
 PHP_METHOD(jsonrpc_client, call);
 PHP_METHOD(jsonrpc_client, execute);
 PHP_METHOD(jsonrpc_client, dorequest);
 
-void jsonrpc_client_init();
+void jsonrpc_client_init(int module_number);
 /*
  * Local variables:
  * tab-width: 4
