@@ -40,12 +40,7 @@ ZEND_DECLARE_MODULE_GLOBALS(jsonrpc)
 */
 
 /* True global resources - no need for thread safety here */
-static int le_jsonrpc;
 
-static int le_curl;
-#define le_curl_name "cURL handle"
-static int  le_curl_multi_handle;
-#define le_curl_multi_handle_name "cURL Multi Handle"
 
 /* {{{ jsonrpc_functions[]
  *
