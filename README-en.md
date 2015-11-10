@@ -26,53 +26,32 @@ Callback binding:
 
 $server = new Jsonrpc_Server();
 
-// Procedures registration
+// style one function variable
+$add1 = function($a, $b){
+  return $a + $b;
+};
+$server->register('addition1', $add1);
 
-$server->register('addition', function ($a, $b) {
+// style two function string
+function add2($a, $b){
+  return $a + $b;
+}
+$server->register('addition2', 'add2');
+
+// style three function closure
+$server->register('addition3', function ($a, $b) {
     return $a + $b;
 });
 
-// Return the response to the client
-echo $server->execute();
-
-//output >>>
-//{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}
-
-?>
-```
-or
-
-```php
-<?php
-
-$server = new Jsonrpc_Server();
-
-$add = function($a, $b){
-	return $a + $b;
+//style four class method string
+class A 
+{
+  static public function add($a, $b)
+  {
+    return $a + $b;
+  }
 }
-
-$server->register('addition', $add);
-
-echo $server->execute();
-
-//output >>>
-//{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}
-
-?>
-```
-
-or
-
-```php
-<?php
-
-$server = new Jsonrpc_Server();
-
-function add($a, $b){
-	return $a + $b;
-}
-
-$server->register('addition', 'add');
+$server->register('addition4', 'A::add');
 
 echo $server->execute();
 
@@ -89,9 +68,9 @@ Example with positional parameters:
 ```php
 <?php
 
-$client = new Jsonrpc_Client();
-$client->call('http://localhost/server.php','addition', array(3,5));
-$client->call('http://yaf-lib.com/rpc/json', "addition", array(10,20));
+$client = new Jsonrpc_Client(1);
+$client->call('http://localhost/server.php', 'addition', array(3,5));
+$client->call('http://localhost/server.php', 'addition', array(10,20));
 /* ... */
 $result = $client->execute();
 
@@ -121,6 +100,6 @@ array(2) {
   ...
 }
 */
-
+?>
 ```
 

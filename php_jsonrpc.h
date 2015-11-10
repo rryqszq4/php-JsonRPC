@@ -40,6 +40,8 @@ extern zend_module_entry jsonrpc_module_entry;
 #include "TSRM.h"
 #endif
 
+extern int le_jsr_epoll_persist;
+
 PHP_MINIT_FUNCTION(jsonrpc);
 PHP_MSHUTDOWN_FUNCTION(jsonrpc);
 PHP_RINIT_FUNCTION(jsonrpc);

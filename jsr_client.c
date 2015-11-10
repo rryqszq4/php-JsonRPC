@@ -38,6 +38,7 @@
 #include "jsr_epoll.h"
 #include "jsr_utils.h"
 
+int le_jsr_epoll_persist;
 
 /** {{{ ARG_INFO
  *  */
@@ -223,7 +224,9 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
   CURL *easy;
   CURLcode error_code;
 
-  //jsr_epoll_destroy(&jsr_request->epoll);
+  if (!jsr_request->context->is_persistent){
+    jsr_epoll_destroy(&(jsr_request->context->epoll));
+  }
 
   jsr_curl_item_t *item;
   size_t size;
@@ -283,7 +286,7 @@ _php_jsr_request_object_new(zend_class_entry *class_type TSRMLS_DC)
   jsr_request = (php_jsr_reuqest_object *)emalloc(sizeof(php_jsr_reuqest_object));
   memset(&jsr_request->zo, 0, sizeof(zend_object));
 
-  jsr_request->epoll = NULL;
+  jsr_request->context = NULL;
   jsr_request->curlm = NULL;
 
   zend_object_std_init(&jsr_request->zo, class_type TSRMLS_CC);
@@ -317,7 +320,7 @@ _php_jsr_epoll_new(zend_bool is_persistent TSRMLS_DC)
 {
   php_jsr_epoll_context *context;
   
-  context = pecalloc(1, sizeof(php_jsr_epoll_context), is_persistent);
+  context = pemalloc(sizeof(php_jsr_epoll_context), 1);
   context->epoll = jsr_epoll_init();
 
   if (!context->epoll){
@@ -337,15 +340,15 @@ _php_jsr_epoll_get(zend_bool is_persistent TSRMLS_DC)
 
   char plist_key[48];
   int plist_key_len;
-  zend_rsrc_list_entry le, *le_p = NULL;
+  zend_rsrc_list_entry le, *le_p;
 
   if (is_persistent){
-    plist_key_len = snprintf(plist_key, 48, "jsonrpc_client_epoll");
+    plist_key_len = snprintf(plist_key, 48, "jsonrpc_client_epoll_1");
     plist_key_len += 1;
 
     if (zend_hash_find(&EG(persistent_list), plist_key, plist_key_len, (void *)&le_p) == SUCCESS)
     {
-      if (le_p->type = le_jsr_epoll_persist){
+      if (le_p->type == le_jsr_epoll_persist){
         return (php_jsr_epoll_context *) le_p->ptr;
       }
     }
@@ -361,7 +364,7 @@ _php_jsr_epoll_get(zend_bool is_persistent TSRMLS_DC)
     le.type = le_jsr_epoll_persist;
     le.ptr = context;
 
-    if (zend_hash_update(&EG(persistent_list), (char *)plist_key, plist_key_len, (void *)&le, sizeof(le), NULL) == FAILURE)
+    if (zend_hash_update(&EG(persistent_list), plist_key, plist_key_len, &le, sizeof(zend_rsrc_list_entry), NULL) == FAILURE)
     {
       php_error_docref(NULL TSRMLS_CC, E_ERROR, "Could not register persistent entry for epoll");
     }
@@ -394,7 +397,7 @@ PHP_METHOD(jsonrpc_client, __construct)
   zval *object;
   zval *response;
 
-  zend_bool persist = 1;
+  zend_bool persist = 0;
 
   php_jsr_epoll_context *context;
   php_jsr_reuqest_object *request;
@@ -448,7 +451,7 @@ PHP_METHOD(jsonrpc_client, __construct)
   object_init_ex(request_obj, php_jsonrpc_client_request_entry);
   request = (php_jsr_reuqest_object *)zend_object_store_get_object(request_obj TSRMLS_CC);
 
-  request->epoll = context->epoll;
+  request->context = context;
   request->curlm = jsr_curlm_new();
   //request->epoll->epoll_fd = epoll_create(1024);
 
@@ -462,7 +465,7 @@ PHP_METHOD(jsonrpc_client, __construct)
 
 
   curl_multi_setopt(request->curlm->multi_handle, CURLMOPT_SOCKETFUNCTION, _socket_callback);
-  curl_multi_setopt(request->curlm->multi_handle, CURLMOPT_SOCKETDATA, request->epoll);
+  curl_multi_setopt(request->curlm->multi_handle, CURLMOPT_SOCKETDATA, request->context->epoll);
   curl_multi_setopt(request->curlm->multi_handle, CURLMOPT_TIMERFUNCTION, _timer_callback);
 
   add_property_zval(object, "request", request_obj);
@@ -634,19 +637,19 @@ PHP_METHOD(jsonrpc_client, execute)
   //jsr_curlm_add_post(request->curlm);
 
   request->curlm->running_handles = 1;
-  request->epoll->loop_total = 0;
+  request->context->epoll->loop_total = 0;
   while (request->curlm->running_handles > 0)
   {
-    request->epoll->loop_total = jsr_epoll_loop(request->epoll , 1);
+    request->context->epoll->loop_total = jsr_epoll_loop(request->context->epoll , 1);
 
-    if (request->epoll->loop_total == 0){
+    if (request->context->epoll->loop_total == 0){
       curl_multi_socket_action(request->curlm->multi_handle, CURL_SOCKET_TIMEOUT, 0, &(request->curlm->running_handles));
     }
     else 
     {
       int i = 0;
-      for (i = 0; i < request->epoll->loop_total; i++){
-        curl_multi_socket_action(request->curlm->multi_handle, request->epoll->events[i].data.fd, 0, &(request->curlm->running_handles));
+      for (i = 0; i < request->context->epoll->loop_total; i++){
+        curl_multi_socket_action(request->curlm->multi_handle, request->context->epoll->events[i].data.fd, 0, &(request->curlm->running_handles));
 
         /*jsr_node_t *node;
         jsr_curl_item_t *item;

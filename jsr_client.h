@@ -26,17 +26,6 @@
 
 #define COUNT_RECURSIVE     1
 
-typedef struct _php_jsr_request_object {
-    zend_object zo;
-
-    jsr_epoll_t *epoll;
-
-    jsr_curlm_t *curlm;
-
-    zval *item_array;
-
-} php_jsr_reuqest_object;
-
 typedef struct _php_jsr_epoll_context {
 
   jsr_epoll_t *epoll;
@@ -47,9 +36,20 @@ typedef struct _php_jsr_epoll_context {
 
 } php_jsr_epoll_context;
 
+typedef struct _php_jsr_request_object {
+    zend_object zo;
+
+    //jsr_epoll_t *epoll;
+    php_jsr_epoll_context *context;
+
+    jsr_curlm_t *curlm;
+
+    zval *item_array;
+
+} php_jsr_reuqest_object;
+
 #endif
 
-static le_jsr_epoll_persist;
 
 static zend_class_entry *php_jsonrpc_client_entry;
 static zend_class_entry *php_jsonrpc_client_request_entry;
