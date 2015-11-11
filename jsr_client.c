@@ -93,29 +93,34 @@ static int _php_count_recursive(zval *array, long mode TSRMLS_DC) /* {{{ */
 }
 
 static zval* 
-_jsr_client_prepare_request(zval *procedure, zval *params TSRMLS_DC)
+_jsr_client_prepare_request(zval *procedure, zval *params, zval *custom_id TSRMLS_DC)
 {
   zval *payload;
   long number;
   int nb_params;
-  zval *id;
 
   MAKE_STD_ZVAL(payload);
   array_init(payload);
-  MAKE_STD_ZVAL(id);
 
   add_assoc_string(payload, "jsonrpc", "2.0", 0);
   add_assoc_string(payload, "method", Z_STRVAL_P(procedure), 0);
 
-  if (!BG(mt_rand_is_seeded)) {
-    php_mt_srand(GENERATE_SEED() TSRMLS_CC);
+  if (Z_TYPE_P(custom_id) == IS_NULL){
+    zval *id;
+    MAKE_STD_ZVAL(id);
+
+    if (!BG(mt_rand_is_seeded)) {
+      php_mt_srand(GENERATE_SEED() TSRMLS_CC);
+    }
+    
+    number = (long) (php_mt_rand(TSRMLS_C) >> 1);
+    ZVAL_LONG(id, number);
+    add_assoc_long(payload, "id", Z_LVAL_P(id));
+    //add_assoc_long(payload, "id", 123456);
+  }else {
+    add_assoc_zval(payload, "id", custom_id);
   }
   
-  number = (long) (php_mt_rand(TSRMLS_C) >> 1);
-  ZVAL_LONG(id, number);
-  add_assoc_long(payload, "id", Z_LVAL_P(id));
-
-  //add_assoc_long(payload, "id", 123456);
   nb_params = _php_count_recursive(params, 0 TSRMLS_CC);
   if (nb_params > 0)
   {
@@ -525,6 +530,7 @@ PHP_METHOD(jsonrpc_client, call)
   zval *url;
   zval *procedure;
   zval *params;
+  zval *id;
   zval *payload;
 
   zval *item;
@@ -533,7 +539,9 @@ PHP_METHOD(jsonrpc_client, call)
 
   object = getThis();
 
-  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzz", &url, &procedure, &params) == FAILURE)
+  ZVAL_NULL(id);
+
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzz|z", &url, &procedure, &params, &id) == FAILURE)
   {
     return ;
   }
@@ -558,7 +566,7 @@ PHP_METHOD(jsonrpc_client, call)
 
 
   MAKE_STD_ZVAL(payload);
-  payload = _jsr_client_prepare_request(procedure, params);
+  payload = _jsr_client_prepare_request(procedure, params, id);
 
   smart_str buf = {0};
   php_json_encode(&buf, payload, 0 TSRMLS_CC);
