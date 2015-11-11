@@ -24,6 +24,7 @@
 #include "php.h"
 #include "ext/standard/php_smart_str.h"
 
+#define PHP_JSONRPC_VERSION "0.0.5"
 
 extern zend_module_entry jsonrpc_module_entry;
 #define phpext_jsonrpc_ptr &jsonrpc_module_entry

@@ -166,7 +166,8 @@ PHP_RSHUTDOWN_FUNCTION(jsonrpc)
 PHP_MINFO_FUNCTION(jsonrpc)
 {
 	php_info_print_table_start();
-	php_info_print_table_header(2, "jsonrpc support", "enabled");
+	php_info_print_table_row(2, "php jsonrpc support", "enabled");
+	php_info_print_table_row(2, "php jsonrpc version", PHP_JSONRPC_VERSION);
 	php_info_print_table_end();
 
 	/* Remove comments if you have entries in php.ini
