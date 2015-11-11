@@ -72,8 +72,10 @@ client.php:
 <?php
 
 $client = new Jsonrpc_Client(1);
-$client->call('http://localhost/server.php', 'addition', array(3,5));
-$client->call('http://localhost/server.php', 'addition', array(10,20));
+$client->call('http://localhost/server.php', 'addition1', array(3,5));
+$client->call('http://localhost/server.php', 'addition2', array(10,20));
+$client->call('http://localhost/server.php', 'addition3', array(2,8));
+$client->call('http://localhost/server.php', 'addition4', array(6,15));
 /* ... */
 $result = $client->execute();
 
@@ -101,6 +103,32 @@ array(2) {
     int(30)
   }
   ...
+}
+*/
+?>
+```
+
+自定义 id
+```php
+<?php
+
+$client = new Jsonrpc_client(1);
+$client->call('http://192.168.80.140/jsonrpc-server.php', 'addition', array(3,5),"custom_id_001");
+$result = $client->execute();
+var_dump($result);
+
+//output >>>
+/*
+array(1) {
+  [0]=>
+  array(3) {
+    ["jsonrpc"]=>
+    string(3) "2.0"
+    ["id"]=>
+    string(13) "custom_id_001"
+    ["result"]=>
+    int(8)
+  }
 }
 */
 ?>

@@ -30,6 +30,7 @@
 #include "SAPI.h"
 #include "ext/json/php_json.h"
 #include "ext/standard/file.h"
+#include "zend_closures.h"
 #include "php_jsonrpc.h"
 
 #include "jsr_server.h"
@@ -80,7 +81,7 @@ ZEND_BEGIN_ARG_INFO_EX(jsonrpc_server_getresponse_arginfo, 0, 0, 2)
 ZEND_END_ARG_INFO()
 /* }}} */
 
-static zval* jr_file_get_contents()
+static zval* _jsr_file_get_contents()
 {
   zval *payload;
 
@@ -121,9 +122,7 @@ static zval* jr_file_get_contents()
   if ((len = php_stream_copy_to_mem(stream, &contents, maxlen, 0)) > 0) {
 #if PHP_API_VERSION < 20100412
     if (PG(magic_quotes_runtime)) {
-      int newlen;
-      contents = php_addslashes(contents, len, &newlen, 1 TSRMLS_CC); 
-      len = newlen;
+      contents = php_addslashes(contents, len, &len, 1 TSRMLS_CC); 
     }
 #endif
     ZVAL_STRINGL(payload, contents, len, 1);
@@ -170,7 +169,7 @@ static int _php_count_recursive(zval *array, long mode TSRMLS_DC) /* {{{ */
   return cnt;
 }
 
-static zval* jr_server_get_arguments(zval *request_params, zval *method_params,
+static zval* _jsr_server_get_arguments(zval *request_params, zval *method_params,
   int nb_required_params, int nb_max_params)
 {
   zval *retval;
@@ -253,18 +252,23 @@ PHP_METHOD(jsonrpc_server, register)
 
   MAKE_STD_ZVAL(classname);
 
-  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz", 
+  /*if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz", 
     &name, &closure) == FAILURE)
   {
     
-  }
+  }*/
 
-  if (Z_TYPE_P(closure) == IS_OBJECT){
+  /*if (Z_TYPE_P(closure) == IS_OBJECT){
     fptr = (zend_function* )zend_get_closure_method_def(closure TSRMLS_CC);
     Z_ADDREF_P(closure);
   }else if (Z_TYPE_P(closure) == IS_STRING){
     name_str = Z_STRVAL_P(closure);
     name_len = Z_STRLEN_P(closure);
+    */
+  if (zend_parse_parameters_ex(ZEND_PARSE_PARAMS_QUIET, ZEND_NUM_ARGS() TSRMLS_CC, "zO", &name, &closure, zend_ce_closure) == SUCCESS) {
+    fptr = (zend_function*)zend_get_closure_method_def(closure TSRMLS_CC);
+    Z_ADDREF_P(closure);
+  } else if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zs", &name, &name_str, &name_len) == SUCCESS) { 
     if ((tmp = strstr(name_str, "::")) == NULL) {
       char *nsname;
 
@@ -312,6 +316,8 @@ PHP_METHOD(jsonrpc_server, register)
       }
       efree(lcname);
     }
+  }else {
+    return ;
   }
 
 
@@ -521,7 +527,7 @@ PHP_METHOD(jsonrpc_server, jsonformat)
     zend_update_property(php_jsonrpc_server_entry, object, "payload", sizeof(payload)-1, payload TSRMLS_CC);
     */
     
-    payload = jr_file_get_contents();
+    payload = _jsr_file_get_contents();
     
     zend_update_property(php_jsonrpc_server_entry, object, "payload", sizeof(payload)-1, payload TSRMLS_CC);
   }

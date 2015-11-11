@@ -69,8 +69,10 @@ Example with positional parameters:
 <?php
 
 $client = new Jsonrpc_Client(1);
-$client->call('http://localhost/server.php', 'addition', array(3,5));
-$client->call('http://localhost/server.php', 'addition', array(10,20));
+$client->call('http://localhost/server.php', 'addition1', array(3,5));
+$client->call('http://localhost/server.php', 'addition2', array(10,20));
+$client->call('http://localhost/server.php', 'addition3', array(2,8));
+$client->call('http://localhost/server.php', 'addition4', array(6,15));
 /* ... */
 $result = $client->execute();
 
@@ -101,5 +103,52 @@ array(2) {
 }
 */
 ?>
+```
+
+client custom id
+```php
+<?php
+
+$client = new Jsonrpc_client(1);
+$client->call('http://192.168.80.140/jsonrpc-server.php', 'addition', array(3,5),"custom_id_001");
+$result = $client->execute();
+var_dump($result);
+
+//output >>>
+/*
+array(1) {
+  [0]=>
+  array(3) {
+    ["jsonrpc"]=>
+    string(3) "2.0"
+    ["id"]=>
+    string(13) "custom_id_001"
+    ["result"]=>
+    int(8)
+  }
+}
+*/
+?>
+```
+
+### Error INFO
+Parse error
+```
+{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}
+```
+
+Invalid Request
+```
+{"jsonrpc":"2.0","id":null,"error":{"code":-32600,"message":"Invalid Request"}}
+```
+
+Method not found
+```
+{"jsonrpc":"2.0","id":null,"error":{"code":-32601,"message":"Method not found"}}
+```
+
+Invalid params
+```
+{"jsonrpc":"2.0","id":null,"error":{"code":-32602,"message":"Invalid params"}}
 ```
 
