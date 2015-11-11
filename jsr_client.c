@@ -539,6 +539,7 @@ PHP_METHOD(jsonrpc_client, call)
 
   object = getThis();
 
+  MAKE_STD_ZVAL(id);
   ZVAL_NULL(id);
 
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzz|z", &url, &procedure, &params, &id) == FAILURE)
