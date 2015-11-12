@@ -66,7 +66,7 @@ jsr_curlm_new(void)
 
     jsr_curlm->multi_handle = curl_multi_init();
     jsr_curlm->list = jsr_list_new();
-    jsr_curlm->running_handles = 1;
+    jsr_curlm->running_handles = 0;
 
     return jsr_curlm;
 
@@ -150,6 +150,12 @@ jsr_curl_item_new(zval *object, char *url, size_t url_size, char *field, size_t 
     item->object = object;
     //item->fp = fopen("curl_data.txt", "ab+");
 
+    item->verbose = 0;
+
+    item->slist = NULL;
+    item->slist = curl_slist_append(item->slist, "Content-Type: application/json"); 
+    item->slist = curl_slist_append(item->slist, "Accept: application/json"); 
+
     return item;
 }
 
@@ -162,6 +168,9 @@ jsr_curl_item_destroy(jsr_curl_item_t **self_p)
         //if (self->curl_handle)
           //curl_easy_cleanup(self->curl_handle);
         //fclose(self->fp);
+        if (self->slist){
+          curl_slist_free_all(self->slist);
+        }
         free(self);
         *self_p = NULL;
     }
@@ -256,7 +265,7 @@ jsr_curl_item_setopt(jsr_curl_item_t *self)
     curl_easy_setopt(self->curl_handle, CURLOPT_URL, self->url);
     curl_easy_setopt(self->curl_handle, CURLOPT_CONNECTTIMEOUT, self->timeout);
     curl_easy_setopt(self->curl_handle, CURLOPT_USERAGENT, "JSON-RPC PHP Client");
-    //curl_easy_setopt(self->curl_handle, CURLOPT_HTTPHEADER, self->slist);
+    curl_easy_setopt(self->curl_handle, CURLOPT_HTTPHEADER, self->slist);
     curl_easy_setopt(self->curl_handle, CURLOPT_FOLLOWLOCATION, 0);
     curl_easy_setopt(self->curl_handle, CURLOPT_CUSTOMREQUEST, "POST");
     curl_easy_setopt(self->curl_handle, CURLOPT_SSL_VERIFYPEER, 1);
@@ -271,7 +280,7 @@ jsr_curl_item_setopt(jsr_curl_item_t *self)
     curl_easy_setopt(self->curl_handle, CURLOPT_WRITEDATA, self);
 
     //curl_easy_setopt(self->curl_handle, CURLOPT_DEBUGFUNCTION, my_trace);
-    //curl_easy_setopt(self->curl_handle, CURLOPT_VERBOSE, 1L);
+    curl_easy_setopt(self->curl_handle, CURLOPT_VERBOSE, self->verbose);
 
     //curl_easy_setopt(self->curl_handle, CURLOPT_WRITEDATA, self->fp);
 }

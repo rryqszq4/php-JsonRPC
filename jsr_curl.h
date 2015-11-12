@@ -63,6 +63,7 @@ struct _jsr_curl_item_t {
     CURL    *curl_handle;
     char    url[128];
     int     timeout;
+    int     verbose;
 
     struct curl_slist *slist;
     char    post_field[256];
