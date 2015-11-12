@@ -172,6 +172,14 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
   zval *tmp;
   zval *response_tmp;
 
+  CURLcode code;
+  long response_code;
+
+  code = curl_easy_getinfo(item->curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
+  if (PHP_JSONRPC_DEBUG){
+    php_printf("response code : %d\n", response_code);
+  }
+
   MAKE_STD_ZVAL(tmp);
   MAKE_STD_ZVAL(response_tmp);
 
@@ -228,6 +236,7 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
   int msgs_left;
   CURL *easy;
   CURLcode error_code;
+  struct curl_slist *list;
 
   if (!jsr_request->context->is_persistent){
     jsr_epoll_destroy(&(jsr_request->context->epoll));
@@ -242,8 +251,12 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
     if (msg->msg == CURLMSG_DONE){
       easy = msg->easy_handle;
       error_code = msg->data.result;
+
+      curl_easy_getinfo(easy, CURLINFO_PRIVATE, &list);
+
       curl_multi_remove_handle(jsr_request->curlm->multi_handle, easy);
       curl_easy_cleanup(easy);
+      curl_slist_free_all(list);
     }
   }
 

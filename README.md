@@ -1,7 +1,7 @@
 JsonRPC 2.0 Client and Server
 =============================
 
-轻量级 Json-RPC 2.0 客户端和服务端的php扩展，基于 multi_curl + epoll的并发客户端，依据[jsonrpc](http://www.jsonrpc.org/)协议规范。
+轻量级 JsonRPC 2.0 客户端和服务端的php扩展，基于 multi_curl + epoll的并发客户端，依据[jsonrpc](http://www.jsonrpc.org/)协议规范。
 [en](https://github.com/rryqszq4/JsonRPC/blob/master/README-en.md)
 
 环境
@@ -116,7 +116,7 @@ Jsonrpc_client(1) 参数为1的时候，将epoll资源进行持久化，默认�
 <?php
 
 $client = new Jsonrpc_client(1);
-$client->call('http://192.168.80.140/jsonrpc-server.php', 'addition', array(3,5),"custom_id_001");
+$client->call('http://localhost/server.php', 'addition', array(3,5),"custom_id_001");
 $result = $client->execute();
 var_dump($result);
 

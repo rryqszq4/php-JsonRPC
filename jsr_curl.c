@@ -66,7 +66,7 @@ jsr_curlm_new(void)
 
     jsr_curlm->multi_handle = curl_multi_init();
     jsr_curlm->list = jsr_list_new();
-    jsr_curlm->running_handles = 0;
+    jsr_curlm->running_handles = 1;
 
     return jsr_curlm;
 
@@ -153,7 +153,7 @@ jsr_curl_item_new(zval *object, char *url, size_t url_size, char *field, size_t 
     item->verbose = 0;
 
     item->slist = NULL;
-    item->slist = curl_slist_append(item->slist, "Content-Type: application/json"); 
+    //item->slist = curl_slist_append(item->slist, "Content-Type: application/json"); 
     item->slist = curl_slist_append(item->slist, "Accept: application/json"); 
 
     return item;
@@ -168,9 +168,6 @@ jsr_curl_item_destroy(jsr_curl_item_t **self_p)
         //if (self->curl_handle)
           //curl_easy_cleanup(self->curl_handle);
         //fclose(self->fp);
-        if (self->slist){
-          curl_slist_free_all(self->slist);
-        }
         free(self);
         *self_p = NULL;
     }

@@ -110,7 +110,7 @@ client custom id
 <?php
 
 $client = new Jsonrpc_client(1);
-$client->call('http://192.168.80.140/jsonrpc-server.php', 'addition', array(3,5),"custom_id_001");
+$client->call('http://localhost/server.php', 'addition', array(3,5),"custom_id_001");
 $result = $client->execute();
 var_dump($result);
 
