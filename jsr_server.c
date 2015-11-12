@@ -353,7 +353,7 @@ PHP_METHOD(jsonrpc_server, bind)
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzz", 
     &procedure, &classes, &method) == FAILURE)
   {
-    
+    return ;
   }
 
   classes = zend_read_property(
@@ -396,7 +396,8 @@ PHP_METHOD(jsonrpc_server, execute)
   MAKE_STD_ZVAL(func);
   ZVAL_STRINGL(func, "jsonformat", sizeof("jsonformat") - 1, 0);
   if (call_user_function(NULL, &object, func, &retval, 0, NULL TSRMLS_CC) == FAILURE){
-
+    php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed calling Jsonrpc_Server::jsonformat()");
+    return ;
   }
   if (!Z_BVAL(retval)){
     add_assoc_long(error, "code", -32700);
@@ -409,7 +410,8 @@ PHP_METHOD(jsonrpc_server, execute)
 
   ZVAL_STRINGL(func, "rpcformat", sizeof("rpcformat") - 1, 0);
   if (call_user_function(NULL, &object, func, &retval, 0, NULL TSRMLS_CC) == FAILURE){
-
+    php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed calling Jsonrpc_Server::rpcformat()");
+    return ;
   }
 
   if (Z_LVAL(retval) == -32600){
@@ -444,12 +446,16 @@ PHP_METHOD(jsonrpc_server, execute)
     );
   if (zend_hash_find(Z_ARRVAL_P(payload), "method", strlen("method")+1, (void **)&payload_method) == FAILURE)
   {
+    php_error_docref(NULL TSRMLS_CC, E_WARNING, "method is not find");
+    return ;
   }
   //jsr_dump_zval(*payload_method);
   exec_params[0] = *payload_method;
 
   if (zend_hash_find(Z_ARRVAL_P(payload), "params", strlen("params")+1, (void **)&payload_params) == FAILURE)
   {
+    php_error_docref(NULL TSRMLS_CC, E_WARNING, "params is not find");
+    return ;
   }
   //shurrik_dump_zval(*payload_params);
   exec_params[1] = *payload_params;
@@ -457,7 +463,8 @@ PHP_METHOD(jsonrpc_server, execute)
   MAKE_STD_ZVAL(return_val);
   ZVAL_STRINGL(func, "executeprocedure", sizeof("executeprocedure") - 1, 0);
   if (call_user_function(NULL, &object, func, return_val, 2, exec_params TSRMLS_CC) == FAILURE){
-
+    php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed calling Jsonrpc_Server::executeprocedure()");
+    return ;
   }
 
   if (Z_LVAL_P(return_val) == -32601){
@@ -484,7 +491,8 @@ getresponse:
   ZVAL_STRINGL(func, "getresponse", sizeof("getresponse") - 1, 0);
   if (call_user_function(NULL, &object, func, &retval, 2, func_params TSRMLS_CC) == FAILURE)
   {
-
+    php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed calling Jsonrpc_Server::getresponse()");
+    return ;
   }
 
   efree(func_params);
@@ -634,7 +642,7 @@ PHP_METHOD(jsonrpc_server, executeprocedure)
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "za", 
     &procedure, &params) == FAILURE)
   { 
-    
+    return ;
   }
 
 
@@ -648,7 +656,10 @@ PHP_METHOD(jsonrpc_server, executeprocedure)
   {
     if (zend_hash_find(Z_ARRVAL_P(callbacks), Z_STRVAL_P(procedure), Z_STRLEN_P(procedure)+1, (void **)&procedure_params) == FAILURE)
     {
-
+      php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed calling Jsonrpc_Server::executecallback()");
+      ZVAL_LONG(retval, -32601);
+      RETVAL_ZVAL(retval, 1, 0);
+      return ;
     }
     MAKE_STD_ZVAL(func);
     ZVAL_STRINGL(func, "executecallback", sizeof("executecallback") - 1, 1);
@@ -657,6 +668,10 @@ PHP_METHOD(jsonrpc_server, executeprocedure)
     func_params[0] = *procedure_params;
     func_params[1] = params;
     if (call_user_function(NULL, &object, func, retval, 2, func_params TSRMLS_CC) == FAILURE){
+      php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed calling Jsonrpc_Server::executecallback()");
+      ZVAL_LONG(retval, -32601);
+      RETVAL_ZVAL(retval, 1, 0);
+      return ;
     }
 
     efree(func_params);
@@ -674,7 +689,7 @@ PHP_METHOD(jsonrpc_server, executeprocedure)
   }
 
   RETVAL_ZVAL(retval, 1, 0);
-  
+  return ;
 }
 
 PHP_METHOD(jsonrpc_server, executecallback)
@@ -696,10 +711,11 @@ PHP_METHOD(jsonrpc_server, executecallback)
   zval *closure_result_ptr = NULL;
 
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz", 
-    &closure, &params) == SUCCESS)
+    &closure, &params) == FAILURE)
   {
     //fptr = (zend_function*)zend_get_closure_method_def(closure TSRMLS_CC);
     //Z_ADDREF_P(closure);
+    return ;
   }
 
 
@@ -736,7 +752,10 @@ PHP_METHOD(jsonrpc_server, executecallback)
   //shurrik_dump_zval(closure);
   if (call_user_function(EG(function_table), NULL, closure, closure_result_ptr, func_params_num, func_params TSRMLS_CC) == FAILURE)
   {
+    php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed calling closure");
+    return ;
   }
+  efree(func_params);
 
   RETVAL_ZVAL(closure_result_ptr, 1, 0);
 
