@@ -8,6 +8,7 @@ JsonRPC 2.0 Client and Server
 -----------
 * JSON-RPC 2.0协议规范
 * 并发curl与epoll结合的并行客户端
+* php-fpm中持久化epoll
 * 服务端支持请求与通知
 * Linux系统
 
@@ -25,12 +26,20 @@ $./configure --with-php-config=/path/to/php-config
 $make && make install
 ```
 
-例子
+服务端
 -----------
+接口
+- Jsonrpc_Server::__construct
+- Jsonrpc_Server::register
+- Jsonrpc_Server::bind
+- Jsonrpc_Server::jsonformat
+- Jsonrpc_Server::rpcformat
+- Jsonrpc_Server::executeprocedure
+- Jsonrpc_Server::executecallback
+- Jsonrpc_Server::getresponse
+- Jsonrpc_Server::execute
 
-### 服务端
 server.php:
-
 ```php
 <?php
 
@@ -71,10 +80,14 @@ echo $server->execute();
 ?>
 ```
 
+客户端
+------------
+接口
+- Jsonrpc_Client::__construct
+- Jsonrpc_Client::call
+- Jsonrpc_Client::execute
 
-### 客户端
 client.php:
-
 ```php
 <?php
 
@@ -115,10 +128,10 @@ array(2) {
 ?>
 ```
 
-####持久化
+**持久化**
 > Jsonrpc_client(1) 参数为1的时候，将epoll资源进行持久化，默认使用非持久化。
 
-####自定义 id
+**自定义 id**
 ```php
 <?php
 
@@ -144,7 +157,8 @@ array(1) {
 ?>
 ```
 
-### 常见错误信息
+常见错误信息
+--------------
 jsonrpc 2.0 错误信息
 ```javascript
 // 语法解析错误
