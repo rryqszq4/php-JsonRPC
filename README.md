@@ -137,8 +137,9 @@ array(1) {
 ?>
 ```
 
-### 常见错误信息
-
+常见错误信息
+----------
+|----------|---------------------------------------------------------------------------|
 |语法解析错误|{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}|
 |  无效请求  |{"jsonrpc":"2.0","id":null,"error":{"code":-32600,"message":"Invalid Request"}}
 | 找不到方法 |{"jsonrpc":"2.0","id":null,"error":{"code":-32601,"message":"Method not found"}}|
