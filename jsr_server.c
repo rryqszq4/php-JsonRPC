@@ -83,6 +83,8 @@ ZEND_END_ARG_INFO()
 
 static zval* _jsr_file_get_contents()
 {
+  TSRMLS_FETCH();
+  
   zval *payload;
 
   MAKE_STD_ZVAL(payload);
