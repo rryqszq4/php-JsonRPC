@@ -170,7 +170,7 @@ static int _php_count_recursive(zval *array, long mode TSRMLS_DC) /* {{{ */
 }
 
 static zval* _jsr_server_get_arguments(zval *request_params, zval *method_params,
-  int nb_required_params, int nb_max_params)
+  int nb_required_params, int nb_max_params TSRMLS_DC)
 {
   zval *retval;
   int nb_params;
@@ -878,7 +878,7 @@ static const zend_function_entry jsonrpc_server_class_functions[] = {
 };
 
 void
-jsonrpc_server_init()
+jsonrpc_server_init(TSRMLS_DC)
 {
 
   zend_class_entry jsonrpc_server_class_entry;

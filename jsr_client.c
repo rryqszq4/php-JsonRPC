@@ -934,7 +934,7 @@ static const zend_function_entry jsonrpc_client_class_functions[] = {
 };
 
 void 
-jsonrpc_client_init(int module_number)
+jsonrpc_client_init(int module_number TSRMLS_DC)
 {
 
   le_jsr_epoll_persist = zend_register_list_destructors_ex(NULL, _php_jsr_epoll_dtor, "jsonrpc persistent epoll", module_number);

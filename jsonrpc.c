@@ -124,9 +124,9 @@ PHP_MINIT_FUNCTION(jsonrpc)
 	INIT_CLASS_ENTRY(jsonrpc_client_class_entry, "Jsonrpc_Client", jsonrpc_client_class_functions);
 	php_jsonrpc_client_entry = zend_register_internal_class(&jsonrpc_client_class_entry TSRMLS_CC);
 */
-	jsonrpc_client_init(module_number);
+	jsonrpc_client_init(module_number TSRMLS_CC);
 
-	jsonrpc_server_init();
+	jsonrpc_server_init(TSRMLS_CC);
 
 	return SUCCESS;
 }
