@@ -40,7 +40,7 @@ PHP_METHOD(jsonrpc_server, executeprocedure);
 PHP_METHOD(jsonrpc_server, executecallback);
 PHP_METHOD(jsonrpc_server, getresponse);
 
-void jsonrpc_server_init(void TSRMLS_DC);
+void jsonrpc_server_init(int module_number TSRMLS_DC);
 
 #endif
 

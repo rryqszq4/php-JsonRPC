@@ -878,7 +878,7 @@ static const zend_function_entry jsonrpc_server_class_functions[] = {
 };
 
 void
-jsonrpc_server_init(TSRMLS_DC)
+jsonrpc_server_init(int module_number TSRMLS_DC)
 {
 
   zend_class_entry jsonrpc_server_class_entry;
