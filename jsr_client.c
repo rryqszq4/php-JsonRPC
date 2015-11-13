@@ -171,30 +171,84 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
   zval *response;
   zval *tmp;
   zval *response_tmp;
+  zval *error;
 
   CURLcode code;
   long response_code;
 
-  code = curl_easy_getinfo(item->curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
-  if (PHP_JSONRPC_DEBUG){
-    php_printf("response code : %d\n", response_code);
-  }
-
-  MAKE_STD_ZVAL(tmp);
-  MAKE_STD_ZVAL(response_tmp);
-
-  object = item->object;
-
   size_t length = size * nmemb;
   item->write_length = length;
 
+  object = item->object;
   response = zend_read_property(
     php_jsonrpc_client_entry, object, "response", sizeof("response")-1, 0 TSRMLS_CC
   );
 
-  ZVAL_STRINGL(tmp, ptr, length, 1);
+  MAKE_STD_ZVAL(tmp);
+  MAKE_STD_ZVAL(response_tmp);
+  array_init(response_tmp);
+  MAKE_STD_ZVAL(error);
+  array_init(error);
 
-  php_json_decode(response_tmp, Z_STRVAL_P(tmp), Z_STRLEN_P(tmp), 1, 512 TSRMLS_CC);
+  code = curl_easy_getinfo(item->curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
+  if (PHP_JSONRPC_DEBUG){
+    php_printf("curl code : %d\n", code);
+    php_printf("response code : %d\n", response_code);
+  }
+
+  switch (response_code)
+  {
+      case 200:
+        ZVAL_STRINGL(tmp, ptr, length, 1);
+        php_json_decode(response_tmp, Z_STRVAL_P(tmp), Z_STRLEN_P(tmp), 1, 512 TSRMLS_CC);
+        break;
+      case 400:
+        add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
+        add_assoc_long(error, "code", -32400);
+        add_assoc_string(error, "message", "Bad Request", 0);
+        add_assoc_null(response_tmp,"id");
+        add_assoc_zval(response_tmp, "error", error);
+        break;
+      case 401:
+        add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
+        add_assoc_long(error, "code", -32401);
+        add_assoc_string(error, "message", "Unauthorized", 0);
+        add_assoc_null(response_tmp,"id");
+        add_assoc_zval(response_tmp, "error", error);
+        break;
+      case 403:
+        add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
+        add_assoc_long(error, "code", -32403);
+        add_assoc_string(error, "message", "Forbidden", 0);
+        add_assoc_null(response_tmp,"id");
+        add_assoc_zval(response_tmp, "error", error);
+        break;
+      case 404:
+        add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
+        add_assoc_long(error, "code", -32404);
+        add_assoc_string(error, "message", "Not Found", 0);
+        add_assoc_null(response_tmp,"id");
+        add_assoc_zval(response_tmp, "error", error);
+        break;
+      case 500:
+        add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
+        add_assoc_long(error, "code", -32500);
+        add_assoc_string(error, "message", "Internal Server Error", 0);
+        add_assoc_null(response_tmp,"id");
+        add_assoc_zval(response_tmp, "error", error);
+        break;
+      case 502:
+        add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
+        add_assoc_long(error, "code", -32502);
+        add_assoc_string(error, "message", "Bad Gateway", 0);
+        add_assoc_null(response_tmp,"id");
+        add_assoc_zval(response_tmp, "error", error);
+        break;
+      default:
+        return 0;
+        break;
+  }
+
 
   add_next_index_zval(response,response_tmp);
 
@@ -875,7 +929,7 @@ static const zend_function_entry jsonrpc_client_class_functions[] = {
   PHP_ME(jsonrpc_client, __destruct,  jsonrpc_client_destruct_arginfo,  ZEND_ACC_PUBLIC | ZEND_ACC_DTOR)
   PHP_ME(jsonrpc_client, call,        jsonrpc_client_call_arginfo,      ZEND_ACC_PUBLIC)
   PHP_ME(jsonrpc_client, execute,     jsonrpc_client_execute_arginfo,   ZEND_ACC_PUBLIC)
-  PHP_ME(jsonrpc_client, dorequest,   jsonrpc_client_dorequest_arginfo, ZEND_ACC_PUBLIC)
+  //PHP_ME(jsonrpc_client, dorequest,   jsonrpc_client_dorequest_arginfo, ZEND_ACC_PUBLIC)
   {NULL, NULL, NULL}
 };
 

@@ -77,7 +77,7 @@ PHP_METHOD(jsonrpc_client, __construct);
 PHP_METHOD(jsonrpc_client, __destruct);
 PHP_METHOD(jsonrpc_client, call);
 PHP_METHOD(jsonrpc_client, execute);
-PHP_METHOD(jsonrpc_client, dorequest);
+//PHP_METHOD(jsonrpc_client, dorequest);
 
 void jsonrpc_client_init(int module_number);
 /*
