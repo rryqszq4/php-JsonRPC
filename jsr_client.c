@@ -166,6 +166,8 @@ _timer_callback(CURLM *multi, long timeout_ms, void *u)
 static size_t
 _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
 {
+  TSRMLS_FETCH();
+  
   jsr_curl_item_t * item = (jsr_curl_item_t *)ctx;
   zval *object;
   zval *response;
@@ -634,7 +636,7 @@ PHP_METHOD(jsonrpc_client, call)
 
 
   MAKE_STD_ZVAL(payload);
-  payload = _jsr_client_prepare_request(procedure, params, id);
+  payload = _jsr_client_prepare_request(procedure, params, id TSRMLS_CC);
 
   smart_str buf = {0};
   php_json_encode(&buf, payload, 0 TSRMLS_CC);
