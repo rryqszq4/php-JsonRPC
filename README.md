@@ -4,14 +4,21 @@ JsonRPC 2.0 Client and Server
 轻量级 JsonRPC 2.0 客户端和服务端的php扩展，基于 multi_curl + epoll的并发客户端，依据[jsonrpc](http://www.jsonrpc.org/)协议规范。
 [en](https://github.com/rryqszq4/JsonRPC/blob/master/README-en.md)
 
-环境
+特性
+-----------
+* JSON-RPC 2.0协议规范
+* 并发curl与epoll结合的并行客户端
+* 服务端支持请求与通知
+* Linux系统
+
+PHP环境
 -----------
 - PHP 5.3.*
 - PHP 5.4.* 
 - PHP 5.6.* 
 
 安装
--------
+-----------
 ```
 $/path/to/phpize
 $./configure --with-php-config=/path/to/php-config
@@ -19,7 +26,7 @@ $make && make install
 ```
 
 例子
---------
+-----------
 
 ### 服务端
 server.php:
@@ -109,7 +116,7 @@ array(2) {
 ```
 
 ####持久化
-Jsonrpc_client(1) 参数为1的时候，将epoll资源进行持久化，默认使用非持久化。
+> Jsonrpc_client(1) 参数为1的时候，将epoll资源进行持久化，默认使用非持久化。
 
 ####自定义 id
 ```php
@@ -137,13 +144,44 @@ array(1) {
 ?>
 ```
 
-常见错误信息
-----------
-|----------|---------------------------------------------------------------------------|
-|语法解析错误|{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}|
-|  无效请求  |{"jsonrpc":"2.0","id":null,"error":{"code":-32600,"message":"Invalid Request"}}
-| 找不到方法 |{"jsonrpc":"2.0","id":null,"error":{"code":-32601,"message":"Method not found"}}|
-| 无效的参数 |{"jsonrpc":"2.0","id":null,"error":{"code":-32602,"message":"Invalid params"}}|
+### 常见错误信息
+jsonrpc 2.0 错误信息
+```javascript
+// 语法解析错误
+{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}
+
+// 无效请求
+{"jsonrpc":"2.0","id":null,"error":{"code":-32600,"message":"Invalid Request"}}
+
+// 找不到方法
+{"jsonrpc":"2.0","id":null,"error":{"code":-32601,"message":"Method not found"}}
+
+// 无效的参数
+{"jsonrpc":"2.0","id":null,"error":{"code":-32602,"message":"Invalid params"}}
+
+//
+```
+
+自定义客户端错误信息
+```javascript
+// 400
+{"jsonrpc":"2.0","id":null,"error":{"code":-32400,"message":"Bad Request"}}
+
+// 401
+{"jsonrpc":"2.0","id":null,"error":{"code":-32401,"message":"Unauthorized"}}
+
+// 403
+{"jsonrpc":"2.0","id":null,"error":{"code":-32403,"message":"Forbidden"}}
+
+// 404
+{"jsonrpc":"2.0","id":null,"error":{"code":-32404,"message":"Not Found"}}
+
+// 500
+{"jsonrpc":"2.0","id":null,"error":{"code":-32500,"message":"Internal Server Error"}}
+
+// 502
+{"jsonrpc":"2.0","id":null,"error":{"code":-32502,"message":"Bad Gateway"}}
+```
 
 
 
