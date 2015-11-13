@@ -126,7 +126,7 @@ PHP_MINIT_FUNCTION(jsonrpc)
 */
 	jsonrpc_client_init(module_number TSRMLS_CC);
 
-	jsonrpc_server_init(TSRMLS_CC);
+	jsonrpc_server_init(module_number TSRMLS_CC);
 
 	return SUCCESS;
 }
