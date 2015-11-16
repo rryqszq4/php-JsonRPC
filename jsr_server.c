@@ -346,14 +346,15 @@ PHP_METHOD(jsonrpc_server, register)
 
 PHP_METHOD(jsonrpc_server, bind)
 {
-  zval *procedure, *classes, *method;
+  zval *procedure, *classname, *method;
+  zval *classes;
   zval *val;
   zval *object;
 
   object = getThis();
 
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzz", 
-    &procedure, &classes, &method) == FAILURE)
+    &procedure, &classname, &method) == FAILURE)
   {
     return ;
   }
@@ -362,13 +363,20 @@ PHP_METHOD(jsonrpc_server, bind)
     php_jsonrpc_server_entry, object, "classes", sizeof("classes")-1, 0 TSRMLS_CC
   );
 
+  MAKE_STD_ZVAL(val);
   array_init(val);
-  add_assoc_string(val, "class", Z_STRVAL_P(classes), 0);
+  if (Z_TYPE_P(classname) == IS_STRING){
+    add_assoc_string(val, "class", Z_STRVAL_P(classname), 0);
+  }else if (Z_TYPE_P(classname) == IS_OBJECT){
+    add_assoc_zval(val, "class", classname);
+  }else {
+    return ;
+  }
   add_assoc_string(val, "method", Z_STRVAL_P(method), 0);
 
   add_assoc_zval(classes, Z_STRVAL_P(procedure), val);
 
-  zend_update_property(php_jsonrpc_server_entry, object, "classes", sizeof(classes)-1, classes TSRMLS_CC);
+  zend_update_property(php_jsonrpc_server_entry, object, "classes", sizeof("classes")-1, classes TSRMLS_CC);
 
   RETURN_ZVAL(object, 1, 0);
 }
