@@ -38,6 +38,7 @@ PHP_METHOD(jsonrpc_server, jsonformat);
 PHP_METHOD(jsonrpc_server, rpcformat);
 PHP_METHOD(jsonrpc_server, executeprocedure);
 PHP_METHOD(jsonrpc_server, executecallback);
+PHP_METHOD(jsonrpc_server, executemethod);
 PHP_METHOD(jsonrpc_server, getresponse);
 
 void jsonrpc_server_init(int module_number TSRMLS_DC);

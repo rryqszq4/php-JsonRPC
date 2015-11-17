@@ -75,6 +75,12 @@ ZEND_BEGIN_ARG_INFO_EX(jsonrpc_server_executecallback_arginfo, 0, 0, 2)
     ZEND_ARG_INFO(0, params)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(jsonrpc_server_executemethod_arginfo, 0, 0, 3)
+    ZEND_ARG_INFO(0, class)
+    ZEND_ARG_INFO(0, method)
+    ZEND_ARG_INFO(0, params)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(jsonrpc_server_getresponse_arginfo, 0, 0, 2)
     ZEND_ARG_INFO(0, data)
     ZEND_ARG_INFO(0, payload)
@@ -819,6 +825,68 @@ PHP_METHOD(jsonrpc_server, executecallback)
   */
 }
 
+PHP_METHOD(jsonrpc_server, executemethod)
+{
+  zval *class, *method, *params;
+  zval *zcallable = NULL;
+  char *func_name;
+
+  int func_params_num;
+  zval **func_params;
+
+  zval *result_ptr = NULL;
+
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzz", 
+    &class, &method, &params) == FAILURE)
+  {
+    return ;
+  }
+
+  MAKE_STD_ZVAL(zcallable);
+  array_init(zcallable);
+  add_next_index_zval(zcallable, class);
+  add_next_index_zval(zcallable, method);
+
+  if (!zcallable || !zend_is_callable(zcallable, 0, &func_name TSRMLS_CC)){
+    php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s is not exist", func_name);
+    RETVAL_FALSE;
+    return;
+  }
+
+  MAKE_STD_ZVAL(result_ptr);
+
+  func_params_num = _php_count_recursive(params, 0 TSRMLS_CC);
+  func_params = emalloc(sizeof(zval *) * func_params_num);
+
+  zval              **current;
+  HashTable          *ph;
+  int i = 0;
+
+  ph = HASH_OF(params);
+  if (!ph) {
+  }
+
+  for (zend_hash_internal_pointer_reset(ph);
+     zend_hash_get_current_data(ph, (void **) &current) == SUCCESS;
+     zend_hash_move_forward(ph)
+  ) {
+    SEPARATE_ZVAL(current);
+    func_params[i] = *current;
+
+    i++;
+  }
+
+  //shurrik_dump_zval(closure);
+  if (call_user_function(EG(function_table), NULL, zcallable, result_ptr, func_params_num, func_params TSRMLS_CC) == FAILURE)
+  {
+    php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed calling closure");
+    return ;
+  }
+  efree(func_params);
+
+  RETVAL_ZVAL(result_ptr, 1, 0);
+}
+
 PHP_METHOD(jsonrpc_server, getresponse)
 {
   zval *data;
@@ -883,6 +951,7 @@ static const zend_function_entry jsonrpc_server_class_functions[] = {
     PHP_ME(jsonrpc_server,    rpcformat,          jsonrpc_server_rpcformat_arginfo,           ZEND_ACC_PUBLIC)
     PHP_ME(jsonrpc_server,    executeprocedure,   jsonrpc_server_executeprocedure_arginfo,    ZEND_ACC_PUBLIC)
     PHP_ME(jsonrpc_server,    executecallback,    jsonrpc_server_executecallback_arginfo,     ZEND_ACC_PUBLIC)
+    PHP_ME(jsonrpc_server,    executemethod,      jsonrpc_server_executemethod_arginfo,       ZEND_ACC_PUBLIC)
     PHP_ME(jsonrpc_server,    getresponse,        jsonrpc_server_getresponse_arginfo,         ZEND_ACC_PUBLIC)
     {NULL, NULL, NULL}
 };
