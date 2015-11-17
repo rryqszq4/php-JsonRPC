@@ -39,6 +39,7 @@ $make && make install
 - Jsonrpc_Server::rpcformat
 - Jsonrpc_Server::executeprocedure
 - Jsonrpc_Server::executecallback
+- Jsonrpc_Server::executemethod
 - Jsonrpc_Server::getresponse
 - Jsonrpc_Server::execute
 
@@ -83,7 +84,7 @@ echo $server->execute();
 ?>
 ```
 
-****绑定方法****
+**绑定方法**
 ```php
 <?php
 
