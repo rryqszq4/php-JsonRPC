@@ -646,6 +646,7 @@ PHP_METHOD(jsonrpc_server, executeprocedure)
 {
   zval *procedure, *params;
   zval *callbacks;
+  zval *classes;
   zval *object;
   zval **func_params;
   zval *func;
@@ -666,6 +667,10 @@ PHP_METHOD(jsonrpc_server, executeprocedure)
     
   callbacks = zend_read_property(
       php_jsonrpc_server_entry, object, "callbacks", sizeof("callbacks")-1, 0 TSRMLS_CC
+    );
+
+  classes = zend_read_property(
+      php_jsonrpc_server_entry, object, "classes", sizeof("classes")-1, 0 TSRMLS_CC
     );
 
   if (zend_hash_exists(Z_ARRVAL_P(callbacks), Z_STRVAL_P(procedure), Z_STRLEN_P(procedure) + 1))
@@ -700,6 +705,33 @@ PHP_METHOD(jsonrpc_server, executeprocedure)
     //}
     //return ;
     
+  }else if (zend_hash_exists(Z_ARRVAL_P(classes), Z_STRVAL_P(procedure), Z_STRLEN_P(procedure) + 1)){
+    if (zend_hash_find(Z_ARRVAL_P(classes), Z_STRVAL_P(procedure), Z_STRLEN_P(procedure)+1, (void **)&procedure_params) == FAILURE)
+    {
+      php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed calling Jsonrpc_Server::executemethod()");
+      ZVAL_LONG(retval, -32601);
+      RETVAL_ZVAL(retval, 1, 0);
+      return ;
+    }
+    MAKE_STD_ZVAL(func);
+    ZVAL_STRINGL(func, "executemethod", sizeof("executemethod") - 1, 1);
+    func_params = emalloc(sizeof(zval *) * 3);
+    //jsr_dump_zval(*procedure_params);
+    zval **class, **method;
+    zend_hash_find(Z_ARRVAL_PP(procedure_params), "class", sizeof("class"), (void **)&class);
+    zend_hash_find(Z_ARRVAL_PP(procedure_params), "method", sizeof("method"), (void **)&method);
+    func_params[0] = *class;
+    func_params[1] = *method;
+    func_params[2] = params;
+    if (call_user_function(NULL, &object, func, retval, 3, func_params TSRMLS_CC) == FAILURE){
+      php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed calling Jsonrpc_Server::executecallback()");
+      ZVAL_LONG(retval, -32601);
+      RETVAL_ZVAL(retval, 1, 0);
+      return ;
+    }
+
+    efree(func_params);
+
   }else {
     ZVAL_LONG(retval, -32601);
   }
