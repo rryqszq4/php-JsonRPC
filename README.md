@@ -3,7 +3,7 @@ JsonRPC 2.0 Client and Server
 
 [![Build Status](https://travis-ci.org/rryqszq4/JsonRPC.svg)](https://travis-ci.org/rryqszq4/JsonRPC)
 
-轻量级 JsonRPC 2.0 客户端和服务端的php扩展，基于 multi_curl + epoll的并发客户端，依据[jsonrpc](http://www.jsonrpc.org/)协议规范。
+轻量级 JsonRPC 2.0 客户端和服务端的php扩展，基于 multi_curl + epoll的并行客户端，依据[jsonrpc](http://www.jsonrpc.org/)协议规范。
 [en](https://github.com/rryqszq4/JsonRPC/blob/master/README-en.md)
 
 特性
@@ -18,6 +18,7 @@ PHP环境
 -----------
 - PHP 5.3.*
 - PHP 5.4.* 
+- PHP 5.5.* 
 - PHP 5.6.* 
 
 安装
@@ -30,7 +31,7 @@ $make && make install
 
 服务端
 -----------
-接口
+**接口**
 - Jsonrpc_Server::__construct
 - Jsonrpc_Server::register
 - Jsonrpc_Server::bind
@@ -41,7 +42,7 @@ $make && make install
 - Jsonrpc_Server::getresponse
 - Jsonrpc_Server::execute
 
-server.php:
+**注册函数**
 ```php
 <?php
 
@@ -65,14 +66,14 @@ $server->register('addition3', function ($a, $b) {
 });
 
 //style four class method string
-class A 
+class Api 
 {
   static public function add($a, $b)
   {
     return $a + $b;
   }
 }
-$server->register('addition4', 'A::add');
+$server->register('addition4', 'Api::add');
 
 echo $server->execute();
 
@@ -82,22 +83,56 @@ echo $server->execute();
 ?>
 ```
 
+****绑定方法****
+```php
+<?php
+
+$server = new Jsonrpc_Server();
+
+class Api
+{
+  static public function add($a, $b)
+  {
+    return $a + $b;
+  }
+
+  public function newadd($a,$b){
+    return $a + $b;
+  }
+}
+
+$server->bind('addition5', 'Api', 'add');
+
+$server->bind('addition6', $a=new Api, 'newadd');
+
+echo $server->execute();
+
+//output >>>
+//{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}
+
+?>
+
+```
+
+
 客户端
 ------------
-接口
+**接口**
 - Jsonrpc_Client::__construct
 - Jsonrpc_Client::call
 - Jsonrpc_Client::execute
 
-client.php:
+**持久化**
+> Jsonrpc_client(1) 参数为1的时候，将epoll资源进行持久化，默认使用非持久化。
+
+**并行调用**
 ```php
 <?php
 
 $client = new Jsonrpc_Client(1);
 $client->call('http://localhost/server.php', 'addition1', array(3,5));
 $client->call('http://localhost/server.php', 'addition2', array(10,20));
-$client->call('http://localhost/server.php', 'addition3', array(2,8));
-$client->call('http://localhost/server.php', 'addition4', array(6,15));
+
 /* ... */
 $result = $client->execute();
 
@@ -129,10 +164,6 @@ array(2) {
 */
 ?>
 ```
-
-**持久化**
-> Jsonrpc_client(1) 参数为1的时候，将epoll资源进行持久化，默认使用非持久化。
-
 **自定义 id**
 ```php
 <?php
@@ -161,7 +192,7 @@ array(1) {
 
 常见错误信息
 --------------
-jsonrpc 2.0 错误信息
+**jsonrpc 2.0 错误信息**
 ```javascript
 // 语法解析错误
 {"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}
@@ -178,7 +209,7 @@ jsonrpc 2.0 错误信息
 //
 ```
 
-自定义客户端错误信息
+**自定义客户端错误信息**
 ```javascript
 // 400
 {"jsonrpc":"2.0","id":null,"error":{"code":-32400,"message":"Bad Request"}}
