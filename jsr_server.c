@@ -218,7 +218,7 @@ PHP_METHOD(jsonrpc_server, __construct)
     RETURN_NULL();
   }
 
-  if (Z_TYPE_P(payload) == IS_STRING){
+  if (Z_TYPE_P(payload) == IS_STRING || Z_TYPE_P(payload) == IS_ARRAY){
     add_property_zval(object, "payload", payload);
   }else {
     ZVAL_NULL(payload);
@@ -557,11 +557,11 @@ PHP_METHOD(jsonrpc_server, jsonformat)
   }
   if (Z_TYPE_P(payload) == IS_STRING){
     php_json_decode(payload, Z_STRVAL_P(payload), Z_STRLEN_P(payload), 1, 512 TSRMLS_CC);
-    zend_update_property(php_jsonrpc_server_entry, object, "payload", sizeof(payload)-1, payload TSRMLS_CC);
   }
   if (Z_TYPE_P(payload) != IS_ARRAY){
     RETVAL_FALSE;
   }else {
+    zend_update_property(php_jsonrpc_server_entry, object, "payload", sizeof(payload)-1, payload TSRMLS_CC);
     RETVAL_TRUE;
   }
 }
