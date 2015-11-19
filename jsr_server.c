@@ -112,7 +112,6 @@ static zval* _jsr_file_get_contents()
   stream = php_stream_open_wrapper_ex("php://input", "rb",
         (use_include_path ? USE_PATH : 0) | ENFORCE_SAFE_MODE | REPORT_ERRORS,
         NULL, context);
-
   
   if (!stream) {
     ZVAL_NULL(payload);
@@ -207,6 +206,7 @@ PHP_METHOD(jsonrpc_server, __construct)
   zval *object = getThis();
 
   MAKE_STD_ZVAL(payload);
+  ZVAL_NULL(payload);
   MAKE_STD_ZVAL(callbacks);
   array_init(callbacks);
   MAKE_STD_ZVAL(classes);
@@ -221,7 +221,6 @@ PHP_METHOD(jsonrpc_server, __construct)
   if (Z_TYPE_P(payload) == IS_STRING || Z_TYPE_P(payload) == IS_ARRAY){
     add_property_zval(object, "payload", payload);
   }else {
-    ZVAL_NULL(payload);
     add_property_zval(object, "payload", payload);
   }
 
@@ -372,13 +371,13 @@ PHP_METHOD(jsonrpc_server, bind)
   MAKE_STD_ZVAL(val);
   array_init(val);
   if (Z_TYPE_P(classname) == IS_STRING){
-    add_assoc_string(val, "class", Z_STRVAL_P(classname), 0);
+    add_assoc_stringl(val, "class", Z_STRVAL_P(classname), Z_STRLEN_P(classname), 1);
   }else if (Z_TYPE_P(classname) == IS_OBJECT){
     add_assoc_zval(val, "class", classname);
   }else {
     return ;
   }
-  add_assoc_string(val, "method", Z_STRVAL_P(method), 0);
+  add_assoc_stringl(val, "method", Z_STRVAL_P(method), Z_STRLEN_P(method), 1);
 
   add_assoc_zval(classes, Z_STRVAL_P(procedure), val);
 
@@ -550,7 +549,7 @@ PHP_METHOD(jsonrpc_server, jsonformat)
     php_stream_close(stream);
     zend_update_property(php_jsonrpc_server_entry, object, "payload", sizeof(payload)-1, payload TSRMLS_CC);
     */
-    
+
     payload = _jsr_file_get_contents();
     
     zend_update_property(php_jsonrpc_server_entry, object, "payload", sizeof(payload)-1, payload TSRMLS_CC);

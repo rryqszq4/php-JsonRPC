@@ -196,6 +196,7 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
   if (PHP_JSONRPC_DEBUG){
     php_printf("curl code : %d\n", code);
     php_printf("response code : %d\n", response_code);
+    php_printf("response data : %s\n", ptr);
   }
 
   switch (response_code)
