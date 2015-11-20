@@ -171,9 +171,14 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
   jsr_curl_item_t * item = (jsr_curl_item_t *)ctx;
   zval *object;
   zval *response;
-  zval *tmp;
+
   zval *response_tmp;
   zval *error;
+
+  char *buffer;
+  zval **response_data;
+  //char buffer[17*1024+1];
+  //memset(buffer, 0, 17*1024+1);
 
   CURLcode code;
   long response_code;
@@ -186,25 +191,66 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
     php_jsonrpc_client_entry, object, "response", sizeof("response")-1, 0 TSRMLS_CC
   );
 
-  MAKE_STD_ZVAL(tmp);
-  MAKE_STD_ZVAL(response_tmp);
-  array_init(response_tmp);
-  MAKE_STD_ZVAL(error);
-  array_init(error);
+  //jsr_dump_zval(response);
+
+  //buffer = malloc(Z_STRLEN_P(response));
 
   code = curl_easy_getinfo(item->curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
   if (PHP_JSONRPC_DEBUG){
     php_printf("curl code : %d\n", code);
     php_printf("response code : %d\n", response_code);
-    php_printf("response data : %s\n", ptr);
+    //php_printf("response data : %s\n", ptr);
+    php_printf("response length : %d\n", length);
   }
 
+  if (response_code == 200){
+    if (zend_hash_index_exists(Z_ARRVAL_P(response), item->response_id TSRMLS_CC))
+    {
+      if (zend_hash_index_find(Z_ARRVAL_P(response), item->response_id, (void **)&response_data TSRMLS_CC) == SUCCESS)
+      {
+        buffer = malloc(Z_STRLEN_PP(response_data) + length + 1);
+        strncpy(buffer, Z_STRVAL_PP(response_data), Z_STRLEN_PP(response_data)+1);
+        strncat(buffer, ptr, length);
+        add_index_stringl(response, item->response_id, buffer, Z_STRLEN_PP(response_data) + length, 1);
+        if (buffer){
+          free(buffer);
+        }
+      }
+    }else {
+      add_index_stringl(response, item->response_id, ptr, length, 1);
+    }
+
+    zend_update_property(php_jsonrpc_client_entry, 
+        object, "response", sizeof("response")-1, response TSRMLS_CC
+        );
+
+    return length;
+
+  }
+
+  MAKE_STD_ZVAL(response_tmp);
+  array_init(response_tmp);
+  MAKE_STD_ZVAL(error);
+  array_init(error);
   switch (response_code)
   {
-      case 200:
-        ZVAL_STRINGL(tmp, ptr, length, 1);
-        php_json_decode(response_tmp, Z_STRVAL_P(tmp), Z_STRLEN_P(tmp), 1, 512 TSRMLS_CC);
-        break;
+      //case 200:
+        /*if (Z_TYPE_P(response) == IS_STRING){
+          buffer = malloc(Z_STRLEN_P(response) + length + 1);
+          strncpy(buffer, Z_STRVAL_P(response), Z_STRLEN_P(response)+1);
+          strncat(buffer, ptr, length);
+          ZVAL_STRINGL(response_tmp, buffer, Z_STRLEN_P(response) + length, 1);
+          zend_update_property(php_jsonrpc_client_entry, 
+            object, "response", sizeof("response")-1, response_tmp TSRMLS_CC
+            );
+          //php_printf("%d\n", strlen(buffer));
+          //php_printf("response buffer : %s\n", buffer);
+          //jsr_dump_zval(response_tmp);
+          free(buffer);
+        }*/
+        //ZVAL_STRINGL(tmp, ptr, length, 1);
+        //php_json_decode(response_tmp, ptr, length, 1, 512 TSRMLS_CC);
+        //break;
       case 400:
         add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
         add_assoc_long(error, "code", -32400);
@@ -253,8 +299,9 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
   }
 
 
-  add_next_index_zval(response,response_tmp);
+  //add_next_index_zval(response,response_tmp);
 
+  add_index_zval(response, item->response_id, response_tmp);
   zend_update_property(php_jsonrpc_client_entry, object, "response", sizeof("response")-1, response TSRMLS_CC);
 
   //zval_ptr_dtor(&tmp);
@@ -471,6 +518,7 @@ PHP_METHOD(jsonrpc_client, __construct)
 {
   zval *object;
   zval *response;
+  zval *response_total;
 
   zend_bool persist = 0;
 
@@ -516,6 +564,7 @@ PHP_METHOD(jsonrpc_client, __construct)
   */
 
   MAKE_STD_ZVAL(response);
+  //ZVAL_STRING(response, "", 1);
   array_init(response);
 
   jsr_curl_global_new();
@@ -545,6 +594,10 @@ PHP_METHOD(jsonrpc_client, __construct)
 
   add_property_zval(object, "request", request_obj);
   add_property_zval(object, "response", response);
+  
+  MAKE_STD_ZVAL(response_total);
+  ZVAL_LONG(response_total, 0);
+  add_property_zval(object, "response_total", response_total);
 
 
 }
@@ -606,6 +659,7 @@ PHP_METHOD(jsonrpc_client, call)
   zval *item;
   zval *object;
   zval *request_obj;
+  zval *response_total;
 
   object = getThis();
 
@@ -621,6 +675,10 @@ PHP_METHOD(jsonrpc_client, call)
 
   request_obj = zend_read_property(
       php_jsonrpc_client_entry, object, "request", sizeof("request")-1, 0 TSRMLS_CC
+    );
+
+  response_total = zend_read_property(
+      php_jsonrpc_client_entry, object, "response_total", sizeof("response_total")-1, 0 TSRMLS_CC
     );
 
   request = (php_jsr_reuqest_object *)zend_object_store_get_object(request_obj TSRMLS_CC);
@@ -653,7 +711,8 @@ PHP_METHOD(jsonrpc_client, call)
       Z_STRVAL_P(url),
       Z_STRLEN_P(url),
       Z_STRVAL_P(payload),
-      Z_STRLEN_P(payload)
+      Z_STRLEN_P(payload),
+      Z_LVAL_P(response_total)
     );
   jsr_curl_item->write_callback = _write_callback;
   
@@ -663,6 +722,14 @@ PHP_METHOD(jsonrpc_client, call)
 
   //jsr_curlm_list_append(request->curlm, jsr_curl_item);
 
+  int total;
+  total = Z_LVAL_P(response_total);
+  total++;
+  ZVAL_LONG(response_total, total);
+
+  zend_update_property(php_jsonrpc_client_entry, 
+    object, "response_total", sizeof("response_total")-1, response_total TSRMLS_CC
+  );
 }
 
 PHP_METHOD(jsonrpc_client, execute)
@@ -767,6 +834,24 @@ PHP_METHOD(jsonrpc_client, execute)
     request->curlm->list->cursor = NULL;
 */
 /*#####################*/
+
+  int i = 0;
+  zval **current;
+  for (zend_hash_internal_pointer_reset(Z_ARRVAL_P(response));
+     zend_hash_get_current_data(Z_ARRVAL_P(response), (void **) &current) == SUCCESS;
+     zend_hash_move_forward(Z_ARRVAL_P(response))
+  ){
+    SEPARATE_ZVAL(current);
+    if (Z_TYPE_PP(current) == IS_STRING){
+      zval *tmp;
+      MAKE_STD_ZVAL(tmp);
+      array_init(tmp);
+      //php_printf("data=> %d, %s\n", i, Z_STRVAL_PP(current));
+      php_json_decode(tmp, Z_STRVAL_PP(current), Z_STRLEN_PP(current), 1, 512 TSRMLS_CC);
+      add_index_zval(response, i, tmp);
+    }
+    i++;
+  }
   RETVAL_ZVAL(response, 1, 0);
 
 }

@@ -75,6 +75,8 @@ struct _jsr_curl_item_t {
     size_t write_length;
 
     zval *object;
+
+    int   response_id;
 };
 
 typedef char bool;
@@ -100,7 +102,7 @@ int jsr_curlm_list_append(jsr_curlm_t *self, jsr_curl_item_t *item);
 int jsr_curlm_list_remove(jsr_curlm_t *self, jsr_curl_item_t *item);
 void *jsr_curlm_add_post(jsr_curlm_t *self);
 
-jsr_curl_item_t *jsr_curl_item_new(zval *object, char *url, size_t url_size, char *field, size_t field_size);
+jsr_curl_item_t *jsr_curl_item_new(zval *object, char *url, size_t url_size, char *field, size_t field_size, int response_id);
 void *jsr_curl_item_destroy(jsr_curl_item_t **self_p);
 void *jsr_curl_item_setopt(jsr_curl_item_t *self);
 
