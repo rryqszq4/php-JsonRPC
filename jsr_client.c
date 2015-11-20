@@ -234,10 +234,10 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
 
   }
 
-  MAKE_STD_ZVAL(response_tmp);
+  /*MAKE_STD_ZVAL(response_tmp);
   array_init(response_tmp);
   MAKE_STD_ZVAL(error);
-  array_init(error);
+  array_init(error);*/
   switch (response_code)
   {
       //case 200:
@@ -258,46 +258,52 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
         //php_json_decode(response_tmp, ptr, length, 1, 512 TSRMLS_CC);
         //break;
       case 400:
-        add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
+        /*add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
         add_assoc_long(error, "code", -32400);
         add_assoc_string(error, "message", "Bad Request", 0);
         add_assoc_null(response_tmp,"id");
-        add_assoc_zval(response_tmp, "error", error);
+        add_assoc_zval(response_tmp, "error", error);*/
+        response_tmp = _php_jsr_response_error(-32400, "Bad Request");
         break;
       case 401:
-        add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
+        /*add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
         add_assoc_long(error, "code", -32401);
         add_assoc_string(error, "message", "Unauthorized", 0);
         add_assoc_null(response_tmp,"id");
-        add_assoc_zval(response_tmp, "error", error);
+        add_assoc_zval(response_tmp, "error", error);*/
+        response_tmp = _php_jsr_response_error(-32401, "Unauthorized");
         break;
       case 403:
-        add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
+        /*add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
         add_assoc_long(error, "code", -32403);
         add_assoc_string(error, "message", "Forbidden", 0);
         add_assoc_null(response_tmp,"id");
-        add_assoc_zval(response_tmp, "error", error);
+        add_assoc_zval(response_tmp, "error", error);*/
+        response_tmp = _php_jsr_response_error(-32403, "Forbidden");
         break;
       case 404:
-        add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
+        /*add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
         add_assoc_long(error, "code", -32404);
         add_assoc_string(error, "message", "Not Found", 0);
         add_assoc_null(response_tmp,"id");
-        add_assoc_zval(response_tmp, "error", error);
+        add_assoc_zval(response_tmp, "error", error);*/
+        response_tmp = _php_jsr_response_error(-32404, "Not Found");
         break;
       case 500:
-        add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
+        /*add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
         add_assoc_long(error, "code", -32500);
         add_assoc_string(error, "message", "Internal Server Error", 0);
         add_assoc_null(response_tmp,"id");
-        add_assoc_zval(response_tmp, "error", error);
+        add_assoc_zval(response_tmp, "error", error);*/
+        response_tmp = _php_jsr_response_error(-32500, "Not Found");
         break;
       case 502:
-        add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
+        /*add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
         add_assoc_long(error, "code", -32502);
         add_assoc_string(error, "message", "Bad Gateway", 0);
         add_assoc_null(response_tmp,"id");
-        add_assoc_zval(response_tmp, "error", error);
+        add_assoc_zval(response_tmp, "error", error);*/
+        response_tmp = _php_jsr_response_error(-32502, "Bad Gateway");
         break;
       default:
         return 0;
@@ -327,6 +333,26 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
 
   //free(item->write_data);
   return length;
+}
+
+static zval* 
+_php_jsr_response_error(long code, char *message)
+{
+  zval *response_tmp;
+  zval *error;
+
+  MAKE_STD_ZVAL(response_tmp);
+  array_init(response_tmp);
+  MAKE_STD_ZVAL(error);
+  array_init(error);
+
+  add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
+  add_assoc_long(error, "code", code);
+  add_assoc_string(error, "message", message, 0);
+  add_assoc_null(response_tmp,"id");
+  add_assoc_zval(response_tmp, "error", error);
+
+  return response_tmp;
 }
 
 static void
@@ -748,7 +774,7 @@ PHP_METHOD(jsonrpc_client, execute)
   zval *params;
   zval *payload;
   zval *response;
-  zval *response_tmp;
+
   php_jsr_reuqest_object *request;
 
   zval *object;
@@ -769,6 +795,10 @@ PHP_METHOD(jsonrpc_client, execute)
         php_jsonrpc_client_entry, object, "request", sizeof("request")-1, 0 TSRMLS_CC
       );
   request = (php_jsr_reuqest_object *)zend_object_store_get_object(request_obj TSRMLS_CC);
+
+  response = zend_read_property(
+    php_jsonrpc_client_entry, object, "response", sizeof("response")-1, 0 TSRMLS_CC
+  );
 
   /*MAKE_STD_ZVAL(response);
   MAKE_STD_ZVAL(payload);
@@ -814,16 +844,49 @@ PHP_METHOD(jsonrpc_client, execute)
           //if (item->write_data)
             //printf("ptr >>> %s %d\n", item->write_data, strlen(item->write_data));
         }*/
-        
+          
       }
 
     }
 
   }
 
-  response = zend_read_property(
-    php_jsonrpc_client_entry, object, "response", sizeof("response")-1, 0 TSRMLS_CC
-  );
+  CURLMsg *msg;
+  int msgs_left;
+  CURL *easy;
+  CURLcode error_code;
+
+  jsr_curl_item_t *item;
+  size_t size;
+  zval *response_tmp;
+
+  while ((msg = curl_multi_info_read(request->curlm->multi_handle, &msgs_left)))
+  {
+    if (msg->msg == CURLMSG_DONE){
+      easy = msg->easy_handle;
+      error_code = msg->data.result;
+
+      //php_printf("error_code : %d\n", error_code);
+
+      if (error_code != CURLE_OK){
+        size = jsr_list_size(request->curlm->list);
+        while (size > 0){
+            item = jsr_list_next(request->curlm->list);
+            if (easy == item->curl_handle){
+              //php_printf("response_id : %d\n", item->response_id);
+              if (error_code == CURLE_COULDNT_CONNECT){
+                response_tmp = _php_jsr_response_error(-32007, "curl couldnt connect");
+                add_index_zval(response, item->response_id, response_tmp);
+              }
+            }
+            size--;
+        }
+        request->curlm->list->cursor = NULL;
+      }
+    
+    }
+  }
+  
 
   //jsr_dump_zval(response);
 /*

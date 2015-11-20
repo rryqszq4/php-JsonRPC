@@ -175,8 +175,61 @@ jsr_curl_item_destroy(jsr_curl_item_t **self_p)
     }
 }
 
-static
-void dump(const char *text,
+void *
+jsr_curl_item_setopt(jsr_curl_item_t *self)
+{
+    curl_easy_setopt(self->curl_handle, CURLOPT_URL, self->url);
+    curl_easy_setopt(self->curl_handle, CURLOPT_CONNECTTIMEOUT, self->timeout);
+    curl_easy_setopt(self->curl_handle, CURLOPT_USERAGENT, "JSON-RPC PHP Client");
+    curl_easy_setopt(self->curl_handle, CURLOPT_HTTPHEADER, self->slist);
+    curl_easy_setopt(self->curl_handle, CURLOPT_FOLLOWLOCATION, 0);
+    curl_easy_setopt(self->curl_handle, CURLOPT_CUSTOMREQUEST, "POST");
+    curl_easy_setopt(self->curl_handle, CURLOPT_SSL_VERIFYPEER, 1);
+
+    curl_easy_setopt(self->curl_handle, CURLOPT_NOPROGRESS,        1);
+
+    //curl_easy_setopt(self->curl_handle, CURLOPT_POSTFIELDS, "{\"jsonrpc\":\"2.0\",\"method\":\"addition\",\"id\":1793433748,\"params\":[3,5]}");
+    curl_easy_setopt(self->curl_handle, CURLOPT_POSTFIELDS, self->post_field);
+    curl_easy_setopt(self->curl_handle, CURLOPT_POSTFIELDSIZE, self->post_field_size);
+
+    curl_easy_setopt(self->curl_handle, CURLOPT_WRITEFUNCTION, self->write_callback);
+    curl_easy_setopt(self->curl_handle, CURLOPT_WRITEDATA, self);
+
+    //curl_easy_setopt(self->curl_handle, CURLOPT_READFUNCTION, self->read_callback);
+    //curl_easy_setopt(self->curl_handle, CURLOPT_READDATA, self);
+
+    curl_easy_setopt(self->curl_handle, CURLOPT_DEBUGFUNCTION, _jsr_curl_trace);
+    curl_easy_setopt(self->curl_handle, CURLOPT_VERBOSE, self->verbose);
+
+    //curl_easy_setopt(self->curl_handle, CURLOPT_WRITEDATA, self->fp);
+
+}
+
+void *
+jsr_curlm_add_post(jsr_curlm_t *self)
+{
+    jsr_curl_item_t *item;
+    int still_running;
+
+    size_t size;
+
+    size = jsr_list_size(self->list);
+
+    while (size > 0){
+        item = jsr_list_next(self->list);
+        //php_printf("%d, %d\n", self->multi_handle, item->curl_handle);
+        curl_multi_add_handle(self->multi_handle, item->curl_handle);
+        size--;
+    }
+
+    self->list->cursor = NULL;
+
+    //curl_multi_perform(self->multi_handle, &still_running);
+    
+}
+
+static void 
+_jsr_curl_dump(const char *text,
           FILE *stream, unsigned char *ptr, size_t size,
           bool nohex)
 {
@@ -224,8 +277,8 @@ void dump(const char *text,
   fflush(stream);
 }
  
-static
-int my_trace(CURL *handle, curl_infotype type,
+static int 
+_jsr_curl_trace(CURL *handle, curl_infotype type,
              unsigned char *data, size_t size,
              void *userp)
 {
@@ -254,58 +307,8 @@ int my_trace(CURL *handle, curl_infotype type,
     break;
   }
  
-  dump(text, stderr, data, size, TRUE);
+  _jsr_curl_dump(text, stderr, data, size, TRUE);
   return 0;
-}
-
-void *
-jsr_curl_item_setopt(jsr_curl_item_t *self)
-{
-    curl_easy_setopt(self->curl_handle, CURLOPT_URL, self->url);
-    curl_easy_setopt(self->curl_handle, CURLOPT_CONNECTTIMEOUT, self->timeout);
-    curl_easy_setopt(self->curl_handle, CURLOPT_USERAGENT, "JSON-RPC PHP Client");
-    curl_easy_setopt(self->curl_handle, CURLOPT_HTTPHEADER, self->slist);
-    curl_easy_setopt(self->curl_handle, CURLOPT_FOLLOWLOCATION, 0);
-    curl_easy_setopt(self->curl_handle, CURLOPT_CUSTOMREQUEST, "POST");
-    curl_easy_setopt(self->curl_handle, CURLOPT_SSL_VERIFYPEER, 1);
-
-    curl_easy_setopt(self->curl_handle, CURLOPT_NOPROGRESS,        1);
-
-    //curl_easy_setopt(self->curl_handle, CURLOPT_POSTFIELDS, "{\"jsonrpc\":\"2.0\",\"method\":\"addition\",\"id\":1793433748,\"params\":[3,5]}");
-    curl_easy_setopt(self->curl_handle, CURLOPT_POSTFIELDS, self->post_field);
-    curl_easy_setopt(self->curl_handle, CURLOPT_POSTFIELDSIZE, self->post_field_size);
-
-    curl_easy_setopt(self->curl_handle, CURLOPT_WRITEFUNCTION, self->write_callback);
-    curl_easy_setopt(self->curl_handle, CURLOPT_WRITEDATA, self);
-
-    //curl_easy_setopt(self->curl_handle, CURLOPT_DEBUGFUNCTION, my_trace);
-    curl_easy_setopt(self->curl_handle, CURLOPT_VERBOSE, self->verbose);
-
-    //curl_easy_setopt(self->curl_handle, CURLOPT_WRITEDATA, self->fp);
-
-}
-
-void *
-jsr_curlm_add_post(jsr_curlm_t *self)
-{
-    jsr_curl_item_t *item;
-    int still_running;
-
-    size_t size;
-
-    size = jsr_list_size(self->list);
-
-    while (size > 0){
-        item = jsr_list_next(self->list);
-        //php_printf("%d, %d\n", self->multi_handle, item->curl_handle);
-        curl_multi_add_handle(self->multi_handle, item->curl_handle);
-        size--;
-    }
-
-    self->list->cursor = NULL;
-
-    //curl_multi_perform(self->multi_handle, &still_running);
-    
 }
 
 /*

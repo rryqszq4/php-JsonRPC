@@ -71,6 +71,7 @@ struct _jsr_curl_item_t {
     FILE    *fp;
 
     size_t (*write_callback)(char *ptr, size_t size, size_t nmemb, void *ctx);
+    size_t (*read_callback)(void *ptr, size_t size, size_t nmemb, void *ctx);
     //char write_data[8192];
     size_t write_length;
 
@@ -105,6 +106,9 @@ void *jsr_curlm_add_post(jsr_curlm_t *self);
 jsr_curl_item_t *jsr_curl_item_new(zval *object, char *url, size_t url_size, char *field, size_t field_size, int response_id);
 void *jsr_curl_item_destroy(jsr_curl_item_t **self_p);
 void *jsr_curl_item_setopt(jsr_curl_item_t *self);
+
+static void _jsr_curl_dump(const char *text, FILE *stream, unsigned char *ptr, size_t size, bool nohex);
+static int _jsr_curl_trace(CURL *handle, curl_infotype type, unsigned char *data, size_t size, void *userp);
 
 #endif
 
