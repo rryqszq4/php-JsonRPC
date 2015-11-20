@@ -164,6 +164,12 @@ _timer_callback(CURLM *multi, long timeout_ms, void *u)
 }
 
 static size_t
+_read_callback(void *ptr, size_t size, size_t nmemb, void *ctx)
+{
+  return 0;
+}
+
+static size_t
 _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
 {
   TSRMLS_FETCH();
@@ -355,6 +361,8 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
     if (msg->msg == CURLMSG_DONE){
       easy = msg->easy_handle;
       error_code = msg->data.result;
+
+      //php_printf("error_code : %d\n", error_code);
 
       curl_easy_getinfo(easy, CURLINFO_PRIVATE, &list);
 
@@ -714,6 +722,8 @@ PHP_METHOD(jsonrpc_client, call)
       Z_STRLEN_P(payload),
       Z_LVAL_P(response_total)
     );
+
+  //jsr_curl_item->read_callback = _read_callback;
   jsr_curl_item->write_callback = _write_callback;
   
   jsr_curl_item_setopt(jsr_curl_item);
@@ -796,7 +806,6 @@ PHP_METHOD(jsonrpc_client, execute)
       int i = 0;
       for (i = 0; i < request->context->epoll->loop_total; i++){
         curl_multi_socket_action(request->curlm->multi_handle, request->context->epoll->events[i].data.fd, 0, &(request->curlm->running_handles));
-
         /*jsr_node_t *node;
         jsr_curl_item_t *item;
         for (node = jsr_list_first(request->curlm->list) ; node != NULL; node = jsr_list_next(request->curlm->list))
@@ -805,6 +814,7 @@ PHP_METHOD(jsonrpc_client, execute)
           //if (item->write_data)
             //printf("ptr >>> %s %d\n", item->write_data, strlen(item->write_data));
         }*/
+        
       }
 
     }
@@ -835,22 +845,26 @@ PHP_METHOD(jsonrpc_client, execute)
 */
 /*#####################*/
 
-  int i = 0;
   zval **current;
+  ulong hash_index = 0;
+  char *hash_key = NULL;
+
   for (zend_hash_internal_pointer_reset(Z_ARRVAL_P(response));
      zend_hash_get_current_data(Z_ARRVAL_P(response), (void **) &current) == SUCCESS;
      zend_hash_move_forward(Z_ARRVAL_P(response))
   ){
+    zend_hash_get_current_key(Z_ARRVAL_P(response), &hash_key, &hash_index, 0);
     SEPARATE_ZVAL(current);
+    //php_printf("key: %s, index: %d", hash_key, hash_index);
     if (Z_TYPE_PP(current) == IS_STRING){
       zval *tmp;
       MAKE_STD_ZVAL(tmp);
       array_init(tmp);
       //php_printf("data=> %d, %s\n", i, Z_STRVAL_PP(current));
       php_json_decode(tmp, Z_STRVAL_PP(current), Z_STRLEN_PP(current), 1, 512 TSRMLS_CC);
-      add_index_zval(response, i, tmp);
+      add_index_zval(response, hash_index, tmp);
     }
-    i++;
+
   }
   RETVAL_ZVAL(response, 1, 0);
 
