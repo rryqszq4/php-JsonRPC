@@ -204,9 +204,9 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
   }
 
   if (response_code == 200){
-    if (zend_hash_index_exists(Z_ARRVAL_P(response), item->response_id TSRMLS_CC))
+    if (zend_hash_index_exists(Z_ARRVAL_P(response), item->response_id))
     {
-      if (zend_hash_index_find(Z_ARRVAL_P(response), item->response_id, (void **)&response_data TSRMLS_CC) == SUCCESS)
+      if (zend_hash_index_find(Z_ARRVAL_P(response), item->response_id, (void **)&response_data) == SUCCESS)
       {
         buffer = malloc(Z_STRLEN_PP(response_data) + length + 1);
         strncpy(buffer, Z_STRVAL_PP(response_data), Z_STRLEN_PP(response_data)+1);
