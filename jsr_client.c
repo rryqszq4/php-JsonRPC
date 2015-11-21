@@ -353,17 +353,23 @@ _php_jsr_response_error(long code, char *message, zval *payload_id)
   add_assoc_long(error, "code", code);
   add_assoc_string(error, "message", message, 0);
   
-  if (Z_TYPE_P(payload_id) == IS_STRING)
+  if (payload_id)
   {
-    add_assoc_string(response_tmp, "id", Z_STRVAL_P(payload_id), 0);
+    if (Z_TYPE_P(payload_id) == IS_STRING)
+    {
+      add_assoc_string(response_tmp, "id", Z_STRVAL_P(payload_id), 0);
+    }
+    else if (Z_TYPE_P(payload_id) == IS_LONG)
+    {
+      add_assoc_long(response_tmp, "id", Z_LVAL_P(payload_id));
+    }
+    else {
+      add_assoc_null(response_tmp,"id");
+    }
+  }else {
+      add_assoc_null(response_tmp,"id");
   }
-  else if (Z_TYPE_P(payload_id) == IS_LONG)
-  {
-    add_assoc_long(response_tmp, "id", Z_LVAL_P(payload_id));
-  }
-  else {
-    add_assoc_null(response_tmp,"id");
-  }
+
   add_assoc_zval(response_tmp, "error", error);
 
   return response_tmp;
@@ -425,8 +431,9 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
       res = curl_multi_remove_handle(jsr_request->curlm->multi_handle, item->curl_handle);
     //php_printf("%d %d, %d\n", res, jsr_request->curlm->multi_handle, item->curl_handle);
     }*/
-      
-    zval_ptr_dtor(&item->payload_id);
+
+    //jsr_dump_zval(item->payload_id);
+    //zval_ptr_dtor(&item->payload_id);
 
     jsr_curl_item_destroy(&item);
 
@@ -751,6 +758,7 @@ PHP_METHOD(jsonrpc_client, call)
   payload = _jsr_client_prepare_request(procedure, params, id TSRMLS_CC);
 
   if (zend_hash_find(Z_ARRVAL_P(payload), "id", sizeof("id"), (void **)&payload_id) == SUCCESS){
+    //jsr_dump_zval(*payload_id);
   }
 
   smart_str buf = {0};
@@ -896,6 +904,7 @@ PHP_METHOD(jsonrpc_client, execute)
             item = jsr_list_next(request->curlm->list);
             if (easy == item->curl_handle){
               //php_printf("response_id : %d\n", item->response_id);
+              //php_printf("%p\n", item->payload_id);
               if (error_code == CURLE_COULDNT_CONNECT){
                 response_tmp = _php_jsr_response_error(-32007, "curl couldnt connect", item->payload_id);
                 add_index_zval(response, item->response_id, response_tmp);
