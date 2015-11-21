@@ -153,7 +153,7 @@ jsr_curl_item_new(zval *object, char *url, size_t url_size, char *field, size_t 
     item->verbose = 0;
 
     item->slist = NULL;
-    //item->slist = curl_slist_append(item->slist, "Content-Type: application/json"); 
+    item->slist = curl_slist_append(item->slist, "Content-Type: application/json"); 
     item->slist = curl_slist_append(item->slist, "Accept: application/json"); 
 
     item->response_id = response_id;
