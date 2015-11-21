@@ -257,13 +257,16 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
         //ZVAL_STRINGL(tmp, ptr, length, 1);
         //php_json_decode(response_tmp, ptr, length, 1, 512 TSRMLS_CC);
         //break;
+      case 302:
+        response_tmp = _php_jsr_response_error(-32302, "Move temporarily", item->payload_id);
+        break;
       case 400:
         /*add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
         add_assoc_long(error, "code", -32400);
         add_assoc_string(error, "message", "Bad Request", 0);
         add_assoc_null(response_tmp,"id");
         add_assoc_zval(response_tmp, "error", error);*/
-        response_tmp = _php_jsr_response_error(-32400, "Bad Request");
+        response_tmp = _php_jsr_response_error(-32400, "Bad Request", item->payload_id);
         break;
       case 401:
         /*add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
@@ -271,7 +274,7 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
         add_assoc_string(error, "message", "Unauthorized", 0);
         add_assoc_null(response_tmp,"id");
         add_assoc_zval(response_tmp, "error", error);*/
-        response_tmp = _php_jsr_response_error(-32401, "Unauthorized");
+        response_tmp = _php_jsr_response_error(-32401, "Unauthorized", item->payload_id);
         break;
       case 403:
         /*add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
@@ -279,7 +282,7 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
         add_assoc_string(error, "message", "Forbidden", 0);
         add_assoc_null(response_tmp,"id");
         add_assoc_zval(response_tmp, "error", error);*/
-        response_tmp = _php_jsr_response_error(-32403, "Forbidden");
+        response_tmp = _php_jsr_response_error(-32403, "Forbidden", item->payload_id);
         break;
       case 404:
         /*add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
@@ -287,7 +290,7 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
         add_assoc_string(error, "message", "Not Found", 0);
         add_assoc_null(response_tmp,"id");
         add_assoc_zval(response_tmp, "error", error);*/
-        response_tmp = _php_jsr_response_error(-32404, "Not Found");
+        response_tmp = _php_jsr_response_error(-32404, "Not Found", item->payload_id);
         break;
       case 500:
         /*add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
@@ -295,7 +298,7 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
         add_assoc_string(error, "message", "Internal Server Error", 0);
         add_assoc_null(response_tmp,"id");
         add_assoc_zval(response_tmp, "error", error);*/
-        response_tmp = _php_jsr_response_error(-32500, "Not Found");
+        response_tmp = _php_jsr_response_error(-32500, "Not Found", item->payload_id);
         break;
       case 502:
         /*add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
@@ -303,7 +306,7 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
         add_assoc_string(error, "message", "Bad Gateway", 0);
         add_assoc_null(response_tmp,"id");
         add_assoc_zval(response_tmp, "error", error);*/
-        response_tmp = _php_jsr_response_error(-32502, "Bad Gateway");
+        response_tmp = _php_jsr_response_error(-32502, "Bad Gateway", item->payload_id);
         break;
       default:
         return 0;
@@ -336,7 +339,7 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
 }
 
 static zval* 
-_php_jsr_response_error(long code, char *message)
+_php_jsr_response_error(long code, char *message, zval *payload_id)
 {
   zval *response_tmp;
   zval *error;
@@ -349,7 +352,18 @@ _php_jsr_response_error(long code, char *message)
   add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
   add_assoc_long(error, "code", code);
   add_assoc_string(error, "message", message, 0);
-  add_assoc_null(response_tmp,"id");
+  
+  if (Z_TYPE_P(payload_id) == IS_STRING)
+  {
+    add_assoc_string(response_tmp, "id", Z_STRVAL_P(payload_id), 0);
+  }
+  else if (Z_TYPE_P(payload_id) == IS_LONG)
+  {
+    add_assoc_long(response_tmp, "id", Z_LVAL_P(payload_id));
+  }
+  else {
+    add_assoc_null(response_tmp,"id");
+  }
   add_assoc_zval(response_tmp, "error", error);
 
   return response_tmp;
@@ -411,6 +425,9 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
       res = curl_multi_remove_handle(jsr_request->curlm->multi_handle, item->curl_handle);
     //php_printf("%d %d, %d\n", res, jsr_request->curlm->multi_handle, item->curl_handle);
     }*/
+      
+    zval_ptr_dtor(&item->payload_id);
+
     jsr_curl_item_destroy(&item);
 
   }
@@ -690,6 +707,8 @@ PHP_METHOD(jsonrpc_client, call)
   zval *id;
   zval *payload;
 
+  zval **payload_id;
+
   zval *item;
   zval *object;
   zval *request_obj;
@@ -731,6 +750,9 @@ PHP_METHOD(jsonrpc_client, call)
   MAKE_STD_ZVAL(payload);
   payload = _jsr_client_prepare_request(procedure, params, id TSRMLS_CC);
 
+  if (zend_hash_find(Z_ARRVAL_P(payload), "id", sizeof("id"), (void **)&payload_id) == SUCCESS){
+  }
+
   smart_str buf = {0};
   php_json_encode(&buf, payload, 0 TSRMLS_CC);
   ZVAL_STRINGL(payload, buf.c, buf.len, 1);
@@ -746,7 +768,8 @@ PHP_METHOD(jsonrpc_client, call)
       Z_STRLEN_P(url),
       Z_STRVAL_P(payload),
       Z_STRLEN_P(payload),
-      Z_LVAL_P(response_total)
+      Z_LVAL_P(response_total),
+      *payload_id
     );
 
   //jsr_curl_item->read_callback = _read_callback;
@@ -759,8 +782,7 @@ PHP_METHOD(jsonrpc_client, call)
   //jsr_curlm_list_append(request->curlm, jsr_curl_item);
 
   int total;
-  total = Z_LVAL_P(response_total);
-  total++;
+  total = Z_LVAL_P(response_total) + 1;
   ZVAL_LONG(response_total, total);
 
   zend_update_property(php_jsonrpc_client_entry, 
@@ -875,7 +897,7 @@ PHP_METHOD(jsonrpc_client, execute)
             if (easy == item->curl_handle){
               //php_printf("response_id : %d\n", item->response_id);
               if (error_code == CURLE_COULDNT_CONNECT){
-                response_tmp = _php_jsr_response_error(-32007, "curl couldnt connect");
+                response_tmp = _php_jsr_response_error(-32007, "curl couldnt connect", item->payload_id);
                 add_index_zval(response, item->response_id, response_tmp);
               }
             }
