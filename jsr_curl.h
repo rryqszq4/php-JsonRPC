@@ -79,6 +79,7 @@ struct _jsr_curl_item_t {
     zval *object;
     int   response_id;
 
+    int   executed;
 };
 
 typedef char bool;

@@ -157,6 +157,8 @@ jsr_curl_item_new(zval *object, char *url, size_t url_size, char *field, size_t 
     item->slist = curl_slist_append(item->slist, "Accept: application/json"); 
 
     item->response_id = response_id;
+
+    item->executed = 0;
     
     return item;
 }

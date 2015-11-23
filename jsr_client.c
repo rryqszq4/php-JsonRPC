@@ -192,6 +192,8 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
   size_t length = size * nmemb;
   item->write_length = length;
 
+  item->executed = 1;
+
   object = item->object;
   response = zend_read_property(
     php_jsonrpc_client_entry, object, "response", sizeof("response")-1, 0 TSRMLS_CC
@@ -525,10 +527,12 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
   while ((size = jsr_list_size(jsr_request->curlm->list)) > 0){
     item = jsr_list_pop(jsr_request->curlm->list);
 
-    /*curl_easy_getinfo(item->curl_handle, CURLINFO_PRIVATE, &list);
-    curl_multi_remove_handle(jsr_request->curlm->multi_handle, item->curl_handle);
-    curl_easy_cleanup(item->curl_handle);
-    curl_slist_free_all(list);*/
+    if (!item->executed){
+      curl_easy_getinfo(item->curl_handle, CURLINFO_PRIVATE, &list);
+      curl_multi_remove_handle(jsr_request->curlm->multi_handle, item->curl_handle);
+      curl_easy_cleanup(item->curl_handle);
+      curl_slist_free_all(list);
+    }
 
     jsr_curl_item_destroy(&item);
 
@@ -740,7 +744,7 @@ PHP_METHOD(jsonrpc_client, __construct)
   curl_multi_setopt(request->curlm->multi_handle, CURLMOPT_TIMERFUNCTION, _timer_callback);
 
   zend_update_property(php_jsonrpc_client_entry,
-      object, "request", sizeof("request")-1, request_obj
+      object, "request", sizeof("request")-1, request_obj TSRMLS_CC
     );
   zval_ptr_dtor(&request_obj);
   
@@ -1238,7 +1242,7 @@ doresponse:
 
 static const zend_function_entry jsonrpc_client_class_functions[] = {
   PHP_ME(jsonrpc_client, __construct, jsonrpc_client_construct_arginfo, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
-  PHP_ME(jsonrpc_client, __destruct,  jsonrpc_client_destruct_arginfo,  ZEND_ACC_PUBLIC | ZEND_ACC_DTOR)
+  //PHP_ME(jsonrpc_client, __destruct,  jsonrpc_client_destruct_arginfo,  ZEND_ACC_PUBLIC | ZEND_ACC_DTOR)
   PHP_ME(jsonrpc_client, call,        jsonrpc_client_call_arginfo,      ZEND_ACC_PUBLIC)
   PHP_ME(jsonrpc_client, execute,     jsonrpc_client_execute_arginfo,   ZEND_ACC_PUBLIC)
   //PHP_ME(jsonrpc_client, dorequest,   jsonrpc_client_dorequest_arginfo, ZEND_ACC_PUBLIC)
