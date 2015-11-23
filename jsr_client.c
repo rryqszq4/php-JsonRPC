@@ -201,12 +201,14 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
 
   //buffer = malloc(Z_STRLEN_P(response));
 
+  //jsr_dump_zval(item->payload_id);
+
   code = curl_easy_getinfo(item->curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
   if (PHP_JSONRPC_DEBUG){
-    php_printf("curl code : %d\n", code);
-    php_printf("response code : %d\n", response_code);
+    //php_printf("curl code : %d\n", code);
+    //php_printf("response code : %d\n", response_code);
     //php_printf("response data : %s\n", ptr);
-    php_printf("response length : %d\n", length);
+    //php_printf("response length : %d\n", length);
   }
 
   if (response_code == 200){
@@ -257,59 +259,178 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
         //ZVAL_STRINGL(tmp, ptr, length, 1);
         //php_json_decode(response_tmp, ptr, length, 1, 512 TSRMLS_CC);
         //break;
-      case 302:
-        response_tmp = _php_jsr_response_error(-32302, "Move temporarily", item->payload_id);
+      case 100:
+        response_tmp = _php_jsr_response_error(-32100, "Continue");
         break;
+      case 101:
+        response_tmp = _php_jsr_response_error(-32101, "Switching Protocols");
+        break;
+      case 102:
+        response_tmp = _php_jsr_response_error(-32102, "Processing");
+        break;
+
+      case 201:
+        response_tmp = _php_jsr_response_error(-32201, "Created");
+        break;
+      case 202:
+        response_tmp = _php_jsr_response_error(-32202, "Accepted");
+        break;
+      case 203:
+        response_tmp = _php_jsr_response_error(-32203, "Non-Authoritative Information");
+        break;
+      case 204:
+        response_tmp = _php_jsr_response_error(-32204, "No Content");
+        break;
+      case 205:
+        response_tmp = _php_jsr_response_error(-32205, "Reset Content");
+        break;
+      case 206:
+        response_tmp = _php_jsr_response_error(-32206, "Partial Content");
+        break;
+      case 207:
+        response_tmp = _php_jsr_response_error(-32207, "Multi-Status");
+        break;
+
+      case 300:
+        response_tmp = _php_jsr_response_error(-32300, "Multiple Choices");
+        break;
+      case 301:
+        response_tmp = _php_jsr_response_error(-32301, "Moved Permanently");
+        break;
+      case 302:
+        response_tmp = _php_jsr_response_error(-32302, "Move temporarily");
+        break;
+      case 303:
+        response_tmp = _php_jsr_response_error(-32303, "See Other");
+        break;
+      case 304:
+        response_tmp = _php_jsr_response_error(-32304, "Not Modified");
+        break;
+      case 305:
+        response_tmp = _php_jsr_response_error(-32305, "Use Proxy");
+        break;
+      case 306:
+        response_tmp = _php_jsr_response_error(-32306, "Switch Proxy");
+        break;
+      case 307:
+        response_tmp = _php_jsr_response_error(-32307, "Temporary Redirect");
+        break;
+
+
       case 400:
-        /*add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
-        add_assoc_long(error, "code", -32400);
-        add_assoc_string(error, "message", "Bad Request", 0);
-        add_assoc_null(response_tmp,"id");
-        add_assoc_zval(response_tmp, "error", error);*/
-        response_tmp = _php_jsr_response_error(-32400, "Bad Request", item->payload_id);
+        response_tmp = _php_jsr_response_error(-32400, "Bad Request");
         break;
       case 401:
-        /*add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
-        add_assoc_long(error, "code", -32401);
-        add_assoc_string(error, "message", "Unauthorized", 0);
-        add_assoc_null(response_tmp,"id");
-        add_assoc_zval(response_tmp, "error", error);*/
-        response_tmp = _php_jsr_response_error(-32401, "Unauthorized", item->payload_id);
+        response_tmp = _php_jsr_response_error(-32401, "Unauthorized");
+        break;
+      case 402:
+        response_tmp = _php_jsr_response_error(-32402, "Payment Required");
         break;
       case 403:
-        /*add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
-        add_assoc_long(error, "code", -32403);
-        add_assoc_string(error, "message", "Forbidden", 0);
-        add_assoc_null(response_tmp,"id");
-        add_assoc_zval(response_tmp, "error", error);*/
-        response_tmp = _php_jsr_response_error(-32403, "Forbidden", item->payload_id);
+        response_tmp = _php_jsr_response_error(-32403, "Forbidden");
         break;
       case 404:
-        /*add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
-        add_assoc_long(error, "code", -32404);
-        add_assoc_string(error, "message", "Not Found", 0);
-        add_assoc_null(response_tmp,"id");
-        add_assoc_zval(response_tmp, "error", error);*/
-        response_tmp = _php_jsr_response_error(-32404, "Not Found", item->payload_id);
+        response_tmp = _php_jsr_response_error(-32404, "Not Found");
         break;
+      case 405:
+        response_tmp = _php_jsr_response_error(-32405, "Method Not Allowed");
+        break;
+      case 406:
+        response_tmp = _php_jsr_response_error(-32406, "Not Acceptable");
+        break;
+      case 407:
+        response_tmp = _php_jsr_response_error(-32407, "Proxy Authentication Required");
+        break;
+      case 408:
+        response_tmp = _php_jsr_response_error(-32408, "Request Timeout");
+        break;
+      case 409:
+        response_tmp = _php_jsr_response_error(-32409, "Conflict");
+        break;
+      case 410:
+        response_tmp = _php_jsr_response_error(-32410, "Gone");
+        break;
+      case 411:
+        response_tmp = _php_jsr_response_error(-32411, "Length Required");
+        break;
+      case 412:
+        response_tmp = _php_jsr_response_error(-32412, "Precondition Failed");
+        break;
+      case 413:
+        response_tmp = _php_jsr_response_error(-32413, "Request Entity Too Large");
+        break;
+      case 414:
+        response_tmp = _php_jsr_response_error(-32414, "Request URI Too Long");
+        break;
+      case 415:
+        response_tmp = _php_jsr_response_error(-32415, "Unsupported Media Type");
+        break;
+      case 416:
+        response_tmp = _php_jsr_response_error(-32416, "Requested Range Not Satisfiable");
+        break;
+      case 417:
+        response_tmp = _php_jsr_response_error(-32417, "Expectation Failed");
+        break;
+      case 418:
+        response_tmp = _php_jsr_response_error(-32418, "I'm a teapot");
+        break;
+      case 421:
+        response_tmp = _php_jsr_response_error(-32421, "Misdirected Request");
+        break;
+      case 422:
+        response_tmp = _php_jsr_response_error(-32422, "Unprocessable Entity");
+        break;
+      case 423:
+        response_tmp = _php_jsr_response_error(-32423, "Locked");
+        break;
+      case 424:
+        response_tmp = _php_jsr_response_error(-32424, "Failed Dependency");
+        break;
+      case 426:
+        response_tmp = _php_jsr_response_error(-32426, "Upgrade Required");
+        break;
+      case 428:
+        response_tmp = _php_jsr_response_error(-32428, "Precondition Required");
+        break;
+      case 429:
+        response_tmp = _php_jsr_response_error(-32429, "Too Many Requests");
+        break;
+      case 431:
+        response_tmp = _php_jsr_response_error(-32431, "Request Header Fields Too Large");
+        break;
+
       case 500:
-        /*add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
-        add_assoc_long(error, "code", -32500);
-        add_assoc_string(error, "message", "Internal Server Error", 0);
-        add_assoc_null(response_tmp,"id");
-        add_assoc_zval(response_tmp, "error", error);*/
-        response_tmp = _php_jsr_response_error(-32500, "Not Found", item->payload_id);
+        response_tmp = _php_jsr_response_error(-32500, "Internal Server Error");
+        break;
+      case 501:
+        response_tmp = _php_jsr_response_error(-32501, "Not Implemented");
         break;
       case 502:
-        /*add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
-        add_assoc_long(error, "code", -32502);
-        add_assoc_string(error, "message", "Bad Gateway", 0);
-        add_assoc_null(response_tmp,"id");
-        add_assoc_zval(response_tmp, "error", error);*/
-        response_tmp = _php_jsr_response_error(-32502, "Bad Gateway", item->payload_id);
+        response_tmp = _php_jsr_response_error(-32502, "Bad Gateway");
+        break;
+      case 503:
+        response_tmp = _php_jsr_response_error(-32503, "Service Unavailable");
+        break;
+      case 504:
+        response_tmp = _php_jsr_response_error(-32504, "Gateway Timeout");
+        break;
+      case 505:
+        response_tmp = _php_jsr_response_error(-32505, "HTTP Version Not Supported");
+        break;
+      case 506:
+        response_tmp = _php_jsr_response_error(-32506, "Variant Also Negotiates");
+        break;
+      case 507:
+        response_tmp = _php_jsr_response_error(-32507, "Insufficient Storage");
+        break;
+      case 509:
+        response_tmp = _php_jsr_response_error(-32509, "Bandwidth Limit Exceeded");
+        break;
+      case 510:
+        response_tmp = _php_jsr_response_error(-32510, "Not Extended");
         break;
       default:
-        return 0;
+        response_tmp = _php_jsr_response_error(-32599, "HTTP Unknow");
         break;
   }
 
@@ -339,7 +460,7 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
 }
 
 static zval* 
-_php_jsr_response_error(long code, char *message, zval *payload_id)
+_php_jsr_response_error(long code, char *message)
 {
   zval *response_tmp;
   zval *error;
@@ -349,27 +470,10 @@ _php_jsr_response_error(long code, char *message, zval *payload_id)
   MAKE_STD_ZVAL(error);
   array_init(error);
 
-  add_assoc_string(response_tmp, "jsonrpc", "2.0", 0);
+  add_assoc_string(response_tmp, "jsonrpc", "2.0", 1);
   add_assoc_long(error, "code", code);
-  add_assoc_string(error, "message", message, 0);
+  add_assoc_string(error, "message", message, 1);
   
-  if (payload_id)
-  {
-    if (Z_TYPE_P(payload_id) == IS_STRING)
-    {
-      add_assoc_string(response_tmp, "id", Z_STRVAL_P(payload_id), 0);
-    }
-    else if (Z_TYPE_P(payload_id) == IS_LONG)
-    {
-      add_assoc_long(response_tmp, "id", Z_LVAL_P(payload_id));
-    }
-    else {
-      add_assoc_null(response_tmp,"id");
-    }
-  }else {
-      add_assoc_null(response_tmp,"id");
-  }
-
   add_assoc_zval(response_tmp, "error", error);
 
   return response_tmp;
@@ -419,21 +523,12 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
   }
 
   while ((size = jsr_list_size(jsr_request->curlm->list)) > 0){
-    //php_printf("size >>> %d\n", size);
-    //item = jsr_curlm_list_pop(jsr_request->curlm);
     item = jsr_list_pop(jsr_request->curlm->list);
 
-    //if (item->curl_handle){
-    //  memset(s, 0, 100);
-    //  sprintf(s, "%p, %p, %p", item, jsr_request->curlm->multi_handle, item->curl_handle);
-    //  write(fd, buf, 2);
-    //  write(fd, s, 100);
-    //  res = curl_multi_remove_handle(jsr_request->curlm->multi_handle, item->curl_handle);
-    //php_printf("%d %d, %d\n", res, jsr_request->curlm->multi_handle, item->curl_handle);
-    //}
-
-    //jsr_dump_zval(item->payload_id);
-    //zval_ptr_dtor(&item->payload_id);
+    /*curl_easy_getinfo(item->curl_handle, CURLINFO_PRIVATE, &list);
+    curl_multi_remove_handle(jsr_request->curlm->multi_handle, item->curl_handle);
+    curl_easy_cleanup(item->curl_handle);
+    curl_slist_free_all(list);*/
 
     jsr_curl_item_destroy(&item);
 
@@ -576,7 +671,6 @@ PHP_METHOD(jsonrpc_client, __construct)
 {
   zval *object;
   zval *response;
-  zval *response_total;
   zval *request_obj;
 
   zend_bool persist = 0;
@@ -658,12 +752,9 @@ PHP_METHOD(jsonrpc_client, __construct)
     );
   zval_ptr_dtor(&response);
 
-  MAKE_STD_ZVAL(response_total);
-  ZVAL_LONG(response_total, 0);
-  zend_update_property(php_jsonrpc_client_entry,
-      object, "response_total", sizeof("response_total")-1, response_total TSRMLS_CC
+  zend_update_property_long(php_jsonrpc_client_entry,
+      object, "response_total", sizeof("response_total")-1, 0 TSRMLS_CC
     );
-  zval_ptr_dtor(&response_total);
   
 }
 
@@ -681,7 +772,6 @@ PHP_METHOD(jsonrpc_client, __destruct)
     );
 
   jsr_request = (php_jsr_reuqest_object *)zend_object_store_get_object(request_obj TSRMLS_CC);
-  
 
   /*jsr_node_t *node;
   jsr_curl_item_t *item;
@@ -715,8 +805,12 @@ PHP_METHOD(jsonrpc_client, call)
   jsr_curl_item_t *jsr_curl_item;
   jsr_epoll_t **epoll_p;
 
-  zval *url;
-  zval *procedure;
+  //zval *url;
+  char *url;
+  long url_len;
+  //zval *procedure;
+  char *procedure;
+  long procedure_len;
   zval *params;
   zval *id;
   zval *payload;
@@ -730,10 +824,7 @@ PHP_METHOD(jsonrpc_client, call)
 
   object = getThis();
 
-  MAKE_STD_ZVAL(id);
-  ZVAL_NULL(id);
-
-  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzz|z", &url, &procedure, &params, &id) == FAILURE)
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ssz|z", &url, &url_len, &procedure, &procedure_len, &params, &id) == FAILURE)
   {
     return ;
   }
@@ -762,11 +853,32 @@ PHP_METHOD(jsonrpc_client, call)
 
 
   MAKE_STD_ZVAL(payload);
-  payload = _jsr_client_prepare_request(procedure, params, id TSRMLS_CC);
+  //payload = _jsr_client_prepare_request(procedure, params, id TSRMLS_CC);
+  array_init(payload);
+  add_assoc_string(payload, "jsonrpc", "2.0", 1);
+  add_assoc_stringl(payload, "method", procedure, procedure_len, 1);
+  if (!id){
+    if (!BG(mt_rand_is_seeded)) {
+      php_mt_srand(GENERATE_SEED() TSRMLS_CC);
+    }
+    
+    long number;
+    number = (long) (php_mt_rand(TSRMLS_C) >> 1);
 
-  if (zend_hash_find(Z_ARRVAL_P(payload), "id", sizeof("id"), (void **)&payload_id) == SUCCESS){
-    //jsr_dump_zval(*payload_id);
+    MAKE_STD_ZVAL(id);
+    ZVAL_LONG(id, number);
+    add_assoc_long(payload, "id", Z_LVAL_P(id));
+  }else {
+    add_assoc_zval(payload, "id", id);
   }
+
+  int nb_params;
+  nb_params = _php_count_recursive(params, 0 TSRMLS_CC);
+  if (nb_params > 0)
+  {
+    add_assoc_zval(payload, "params", params);
+  }
+
 
   smart_str buf = {0};
   php_json_encode(&buf, payload, 0 TSRMLS_CC);
@@ -779,13 +891,14 @@ PHP_METHOD(jsonrpc_client, call)
 
   jsr_curl_item = jsr_curl_item_new(
       object,
-      Z_STRVAL_P(url),
-      Z_STRLEN_P(url),
+      url,
+      url_len,
       Z_STRVAL_P(payload),
       Z_STRLEN_P(payload),
-      Z_LVAL_P(response_total),
-      *payload_id
+      Z_LVAL_P(response_total)
     );
+
+  zval_ptr_dtor(&payload);
 
   //jsr_curl_item->read_callback = _read_callback;
   jsr_curl_item->write_callback = _write_callback;
@@ -796,10 +909,8 @@ PHP_METHOD(jsonrpc_client, call)
 
   //jsr_curlm_list_append(request->curlm, jsr_curl_item);
 
-  ZVAL_LONG(response_total, Z_LVAL_P(response_total) + 1);
-
-  zend_update_property(php_jsonrpc_client_entry, 
-    object, "response_total", sizeof("response_total")-1, response_total TSRMLS_CC
+  zend_update_property_long(php_jsonrpc_client_entry, 
+    object, "response_total", sizeof("response_total")-1, Z_LVAL_P(response_total) + 1 TSRMLS_CC
   );
 }
 
@@ -886,7 +997,7 @@ PHP_METHOD(jsonrpc_client, execute)
 
   }
 
-  CURLMsg *msg;
+  /*CURLMsg *msg;
   int msgs_left;
   CURL *easy;
   CURLcode error_code;
@@ -911,7 +1022,7 @@ PHP_METHOD(jsonrpc_client, execute)
               //php_printf("response_id : %d\n", item->response_id);
               //php_printf("%p\n", item->payload_id);
               if (error_code == CURLE_COULDNT_CONNECT){
-                response_tmp = _php_jsr_response_error(-32007, "curl couldnt connect", item->payload_id);
+                response_tmp = _php_jsr_response_error(-32007, "curl couldnt connect");
                 add_index_zval(response, item->response_id, response_tmp);
               }
             }
@@ -921,7 +1032,7 @@ PHP_METHOD(jsonrpc_client, execute)
       }
     
     }
-  }
+  }*/
   
 
   //jsr_dump_zval(response);

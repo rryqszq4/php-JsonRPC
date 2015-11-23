@@ -62,14 +62,14 @@ struct _jsr_curlm_t
 
 struct _jsr_curl_item_t {
     CURL    *curl_handle;
-    char    url[128];
+    char    url[256];
     int     timeout;
     int     verbose;
 
     struct curl_slist *slist;
-    char    post_field[256];
+    char    post_field[512];
     size_t  post_field_size;
-    FILE    *fp;
+    //FILE    *fp;
 
     size_t (*write_callback)(char *ptr, size_t size, size_t nmemb, void *ctx);
     size_t (*read_callback)(void *ptr, size_t size, size_t nmemb, void *ctx);
@@ -77,9 +77,8 @@ struct _jsr_curl_item_t {
     size_t write_length;
 
     zval *object;
-
     int   response_id;
-    zval *payload_id;
+
 };
 
 typedef char bool;
@@ -105,7 +104,7 @@ int jsr_curlm_list_append(jsr_curlm_t *self, jsr_curl_item_t *item);
 int jsr_curlm_list_remove(jsr_curlm_t *self, jsr_curl_item_t *item);
 void *jsr_curlm_add_post(jsr_curlm_t *self);
 
-jsr_curl_item_t *jsr_curl_item_new(zval *object, char *url, size_t url_size, char *field, size_t field_size, int response_id, zval *payload_id);
+jsr_curl_item_t *jsr_curl_item_new(zval *object, char *url, size_t url_size, char *field, size_t field_size, int response_id);
 void *jsr_curl_item_destroy(jsr_curl_item_t **self_p);
 void *jsr_curl_item_setopt(jsr_curl_item_t *self);
 
