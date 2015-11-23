@@ -192,8 +192,6 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
   size_t length = size * nmemb;
   item->write_length = length;
 
-  item->executed = 1;
-
   object = item->object;
   response = zend_read_property(
     php_jsonrpc_client_entry, object, "response", sizeof("response")-1, 0 TSRMLS_CC
@@ -526,8 +524,7 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
 
   while ((size = jsr_list_size(jsr_request->curlm->list)) > 0){
     item = jsr_list_pop(jsr_request->curlm->list);
-
-    if (!item->executed){
+    if (!jsr_request->executed){
       curl_easy_getinfo(item->curl_handle, CURLINFO_PRIVATE, &list);
       curl_multi_remove_handle(jsr_request->curlm->multi_handle, item->curl_handle);
       curl_easy_cleanup(item->curl_handle);
@@ -567,6 +564,7 @@ _php_jsr_request_object_new(zend_class_entry *class_type TSRMLS_DC)
 
   jsr_request->context = NULL;
   jsr_request->curlm = NULL;
+  jsr_request->executed = 0;
 
   zend_object_std_init(&jsr_request->zo, class_type TSRMLS_CC);
 #if PHP_VERSION_ID < 50399
@@ -945,6 +943,7 @@ PHP_METHOD(jsonrpc_client, execute)
         php_jsonrpc_client_entry, object, "request", sizeof("request")-1, 0 TSRMLS_CC
       );
   request = (php_jsr_reuqest_object *)zend_object_store_get_object(request_obj TSRMLS_CC);
+  request->executed = 1;
 
   response = zend_read_property(
     php_jsonrpc_client_entry, object, "response", sizeof("response")-1, 0 TSRMLS_CC

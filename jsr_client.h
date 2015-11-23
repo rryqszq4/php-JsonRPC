@@ -44,6 +44,8 @@ typedef struct _php_jsr_request_object {
 
     jsr_curlm_t *curlm;
 
+    zend_bool executed;
+
 } php_jsr_reuqest_object;
 
 #endif
