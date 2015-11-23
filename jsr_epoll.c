@@ -48,7 +48,7 @@ jsr_epoll_add_fd(jsr_epoll_t *self, int fd)
     if (epoll_ctl(self->epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1)
         return -1;
 
-    jsr_setnonblocking(self->epoll_fd);
+    //jsr_setnonblocking(self->epoll_fd);
 
     return 0;
 }
