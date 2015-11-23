@@ -202,15 +202,10 @@ static zval* _jsr_server_get_arguments(zval *request_params, zval *method_params
 
 PHP_METHOD(jsonrpc_server, __construct)
 {
-  zval *payload, *callbacks, *classes;
+  zval *payload = NULL;
+  zval *callbacks = NULL;
+  zval *classes = NULL;
   zval *object = getThis();
-
-  MAKE_STD_ZVAL(payload);
-  ZVAL_NULL(payload);
-  MAKE_STD_ZVAL(callbacks);
-  array_init(callbacks);
-  MAKE_STD_ZVAL(classes);
-  array_init(classes);
 
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|zzz", 
     &payload, &callbacks, &classes) == FAILURE)
@@ -218,23 +213,36 @@ PHP_METHOD(jsonrpc_server, __construct)
     RETURN_NULL();
   }
 
-  if (Z_TYPE_P(payload) == IS_STRING || Z_TYPE_P(payload) == IS_ARRAY){
-    add_property_zval(object, "payload", payload);
-  }else {
-    add_property_zval(object, "payload", payload);
+  if (payload){
+    zend_update_property(php_jsonrpc_server_entry,
+      object, "payload", sizeof("payload")-1, payload TSRMLS_CC
+    );
   }
 
-
-  if (Z_TYPE_P(callbacks) == IS_ARRAY){
-    add_property_zval(object, "callbacks", callbacks);
+  if (callbacks){
+    zend_update_property(php_jsonrpc_server_entry,
+      object, "callbacks", sizeof("callbacks")-1, callbacks TSRMLS_CC
+    );
   }else {
-    add_property_zval(object, "callbacks", callbacks);
+    MAKE_STD_ZVAL(callbacks);
+    array_init(callbacks);
+    zend_update_property(php_jsonrpc_server_entry,
+      object, "callbacks", sizeof("callbacks")-1, callbacks TSRMLS_CC
+    );
+    //zval_ptr_dtor(&callbacks);
   }
-  
-  if (Z_TYPE_P(classes) == IS_ARRAY){
-    add_property_zval(object, "classes", classes);
+
+  if (classes){
+    zend_update_property(php_jsonrpc_server_entry,
+      object, "classes", sizeof("classes")-1, classes TSRMLS_CC
+    );
   }else {
-    add_property_zval(object, "classes", classes);
+    MAKE_STD_ZVAL(classes);
+    array_init(classes);
+    zend_update_property(php_jsonrpc_server_entry,
+      object, "classes", sizeof("classes")-1, classes TSRMLS_CC
+    );
+    //zval_ptr_dtor(&classes);
   }
 
 
@@ -257,21 +265,6 @@ PHP_METHOD(jsonrpc_server, register)
 
   zval *object = getThis();
 
-  MAKE_STD_ZVAL(classname);
-
-  /*if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz", 
-    &name, &closure) == FAILURE)
-  {
-    
-  }*/
-
-  /*if (Z_TYPE_P(closure) == IS_OBJECT){
-    fptr = (zend_function* )zend_get_closure_method_def(closure TSRMLS_CC);
-    Z_ADDREF_P(closure);
-  }else if (Z_TYPE_P(closure) == IS_STRING){
-    name_str = Z_STRVAL_P(closure);
-    name_len = Z_STRLEN_P(closure);
-    */
   if (zend_parse_parameters_ex(ZEND_PARSE_PARAMS_QUIET, ZEND_NUM_ARGS() TSRMLS_CC, "zO", &name, &closure, zend_ce_closure) == SUCCESS) {
     fptr = (zend_function*)zend_get_closure_method_def(closure TSRMLS_CC);
     Z_ADDREF_P(closure);
@@ -297,6 +290,7 @@ PHP_METHOD(jsonrpc_server, register)
       efree(lcname);
     }else {
       tmp_len = tmp - name_str;
+      MAKE_STD_ZVAL(classname);
       ZVAL_STRINGL(classname, name_str, tmp_len, 1);
       name_len = name_len - (tmp_len + 2);
       name_str = tmp + 2;
@@ -994,6 +988,9 @@ jsonrpc_server_init(int module_number TSRMLS_DC)
   zend_class_entry jsonrpc_server_class_entry;
   INIT_CLASS_ENTRY(jsonrpc_server_class_entry, "Jsonrpc_Server", jsonrpc_server_class_functions);
   php_jsonrpc_server_entry = zend_register_internal_class(&jsonrpc_server_class_entry TSRMLS_CC);
+  zend_declare_property_null(php_jsonrpc_server_entry, "payload",   sizeof("payload")-1,   ZEND_ACC_PUBLIC TSRMLS_CC);
+  zend_declare_property_null(php_jsonrpc_server_entry, "callbacks", sizeof("callbacks")-1, ZEND_ACC_PUBLIC TSRMLS_CC);
+  zend_declare_property_null(php_jsonrpc_server_entry, "classes",   sizeof("classes")-1,   ZEND_ACC_PUBLIC TSRMLS_CC);
 
 }
 
