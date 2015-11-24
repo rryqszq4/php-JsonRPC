@@ -42,6 +42,7 @@
 typedef struct _jsr_curl_t jsr_curl_t;
 typedef struct _jsr_curlm_t jsr_curlm_t;
 typedef struct _jsr_curl_item_t jsr_curl_item_t;
+typedef struct _jsr_curl_sockinfo_t jsr_curl_sockinfo_t;
 
 struct _jsr_curl_t {
       CURL      *curl_handle;
@@ -79,6 +80,13 @@ struct _jsr_curl_item_t {
     zval *object;
     int   response_id;
 
+};
+
+struct _jsr_curl_sockinfo_t {
+  curl_socket_t sockfd;
+  CURL *easy;
+  int action;
+  long timeout;
 };
 
 typedef char bool;

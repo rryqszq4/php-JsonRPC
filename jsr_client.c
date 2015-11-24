@@ -134,23 +134,33 @@ static int
 _socket_callback(CURL *easy, curl_socket_t fd, int action, void *u, void *s)
 {
   //php_printf(">>> %s: adding fd=%d action=%d\n", __func__, fd, action);
-  jsr_epoll_t *jsr_epoll = (jsr_epoll_t *) u;
+  php_jsr_reuqest_object *request = (php_jsr_reuqest_object *) u;
+  jsr_epoll_t *jsr_epoll = request->context->epoll;
+  jsr_curl_sockinfo_t *jsr_sock = (jsr_curl_sockinfo_t *) s;
 
   if (action == CURL_POLL_REMOVE)
   {
-    jsr_epoll_del_fd(jsr_epoll, fd);
-  }
+    if (jsr_sock){
+      jsr_epoll_del_fd(jsr_epoll, jsr_sock->sockfd);
+      free(jsr_sock);
+    }
+  }else {
+    if (!jsr_sock){
+      jsr_sock = calloc(sizeof(jsr_curl_sockinfo_t), 1);
+      jsr_sock->sockfd = fd;
+      jsr_sock->easy = easy;
+      jsr_epoll_add_fd(jsr_epoll, jsr_sock->sockfd);
+      curl_multi_assign(request->curlm->multi_handle, jsr_sock->sockfd, jsr_sock);
+    }
+    if (action == CURL_POLL_IN || action == CURL_POLL_INOUT)
+    {
+      jsr_epoll_set_in(jsr_epoll, jsr_sock->sockfd);
+    }
 
-  if (action == CURL_POLL_IN || action == CURL_POLL_INOUT)
-  {
-    jsr_epoll_add_fd(jsr_epoll, fd);
-    jsr_epoll_set_in(jsr_epoll, fd);
-  }
-
-  if (action == CURL_POLL_OUT || action == CURL_POLL_INOUT)
-  {
-    jsr_epoll_add_fd(jsr_epoll, fd);
-    jsr_epoll_set_out(jsr_epoll, fd);
+    if (action == CURL_POLL_OUT || action == CURL_POLL_INOUT)
+    {
+      jsr_epoll_set_out(jsr_epoll, jsr_sock->sockfd);
+    }
   }
 
   return 0;
@@ -159,8 +169,8 @@ _socket_callback(CURL *easy, curl_socket_t fd, int action, void *u, void *s)
 static int 
 _timer_callback(CURLM *multi, long timeout_ms, void *u)
 {
-  //printf(">>> %s: timeout: %ld ms\n", __func__, timeout_ms);
-    return 0;
+  //php_printf(">>> %s: timeout: %ld ms\n", __func__, timeout_ms);
+  return 0;
 }
 
 static size_t
@@ -738,7 +748,7 @@ PHP_METHOD(jsonrpc_client, __construct)
 
 
   curl_multi_setopt(request->curlm->multi_handle, CURLMOPT_SOCKETFUNCTION, _socket_callback);
-  curl_multi_setopt(request->curlm->multi_handle, CURLMOPT_SOCKETDATA, request->context->epoll);
+  curl_multi_setopt(request->curlm->multi_handle, CURLMOPT_SOCKETDATA, request);
   curl_multi_setopt(request->curlm->multi_handle, CURLMOPT_TIMERFUNCTION, _timer_callback);
 
   zend_update_property(php_jsonrpc_client_entry,
@@ -973,29 +983,38 @@ PHP_METHOD(jsonrpc_client, execute)
 
   request->curlm->running_handles = 1;
   request->context->epoll->loop_total = 0;
+  int action;
+
   while (request->curlm->running_handles > 0)
   {
     request->context->epoll->loop_total = jsr_epoll_loop(request->context->epoll , 1);
 
     if (request->context->epoll->loop_total == 0){
       curl_multi_socket_action(request->curlm->multi_handle, CURL_SOCKET_TIMEOUT, 0, &(request->curlm->running_handles));
-    }
-    else 
-    {
+    }else if (request->context->epoll->loop_total > 0){
       int i = 0;
       for (i = 0; i < request->context->epoll->loop_total; i++){
-        curl_multi_socket_action(request->curlm->multi_handle, request->context->epoll->events[i].data.fd, 0, &(request->curlm->running_handles));
-        /*jsr_node_t *node;
-        jsr_curl_item_t *item;
-        for (node = jsr_list_first(request->curlm->list) ; node != NULL; node = jsr_list_next(request->curlm->list))
-        {
-          item = jsr_list_item(request->curlm->list);
-          //if (item->write_data)
-            //printf("ptr >>> %s %d\n", item->write_data, strlen(item->write_data));
-        }*/
+        if (request->context->epoll->events[i].events & EPOLLIN){
+          action = CURL_CSELECT_IN;
+          //php_printf("action(.events) : %d\n" ,action);
+          curl_multi_socket_action(request->curlm->multi_handle, 
+          request->context->epoll->events[i].data.fd, action, &(request->curlm->running_handles));
+        }else if (request->context->epoll->events[i].events & EPOLLOUT){
+          action = CURL_CSELECT_OUT;
+          //php_printf("action(.events) : %d\n" ,action);
+          curl_multi_socket_action(request->curlm->multi_handle, 
+          request->context->epoll->events[i].data.fd, action, &(request->curlm->running_handles));
+        }else {
+          action = 0;
+          curl_multi_socket_action(request->curlm->multi_handle, 
+          request->context->epoll->events[i].data.fd, 0, &(request->curlm->running_handles));
+        }
           
       }
 
+    }else {
+      php_error_docref(NULL TSRMLS_CC, E_WARNING, "epoll_wait error '%s'", strerror(errno));
+      break;
     }
 
   }
