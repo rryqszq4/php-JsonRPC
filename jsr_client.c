@@ -170,6 +170,8 @@ static int
 _timer_callback(CURLM *multi, long timeout_ms, void *u)
 {
   //php_printf(">>> %s: timeout: %ld ms\n", __func__, timeout_ms);
+  php_jsr_reuqest_object *request = (php_jsr_reuqest_object *) u;
+  request->curlm->timeout = timeout_ms;
   return 0;
 }
 
@@ -750,6 +752,7 @@ PHP_METHOD(jsonrpc_client, __construct)
   curl_multi_setopt(request->curlm->multi_handle, CURLMOPT_SOCKETFUNCTION, _socket_callback);
   curl_multi_setopt(request->curlm->multi_handle, CURLMOPT_SOCKETDATA, request);
   curl_multi_setopt(request->curlm->multi_handle, CURLMOPT_TIMERFUNCTION, _timer_callback);
+  curl_multi_setopt(request->curlm->multi_handle, CURLMOPT_TIMERDATA, request);
 
   zend_update_property(php_jsonrpc_client_entry,
       object, "request", sizeof("request")-1, request_obj TSRMLS_CC
@@ -985,12 +988,25 @@ PHP_METHOD(jsonrpc_client, execute)
   request->context->epoll->loop_total = 0;
   int action;
 
+  /*while (CURLM_CALL_MULTI_PERFORM == 
+    curl_multi_socket_action(
+    request->curlm->multi_handle, CURL_SOCKET_TIMEOUT, 0, &(request->curlm->running_handles))
+  );*/
+  //php_printf("running : %d\n", request->curlm->running_handles);
+
   while (request->curlm->running_handles > 0)
   {
-    request->context->epoll->loop_total = jsr_epoll_loop(request->context->epoll , 1);
+    request->context->epoll->loop_total = jsr_epoll_loop(request->context->epoll , request->curlm->timeout);
 
     if (request->context->epoll->loop_total == 0){
-      curl_multi_socket_action(request->curlm->multi_handle, CURL_SOCKET_TIMEOUT, 0, &(request->curlm->running_handles));
+      //php_printf("%d\n", request->curlm->running_handles);
+      //if (request->curlm->running_handles == 0){
+        //break;
+      //}
+      if (request->curlm->running_handles > 0){
+        //php_printf("timeout: %d\n", request->curlm->timeout);
+        curl_multi_socket_action(request->curlm->multi_handle, CURL_SOCKET_TIMEOUT, 0, &(request->curlm->running_handles));
+      }
     }else if (request->context->epoll->loop_total > 0){
       int i = 0;
       for (i = 0; i < request->context->epoll->loop_total; i++){
@@ -1011,7 +1027,6 @@ PHP_METHOD(jsonrpc_client, execute)
         }
           
       }
-
     }else {
       php_error_docref(NULL TSRMLS_CC, E_WARNING, "epoll_wait error '%s'", strerror(errno));
       break;

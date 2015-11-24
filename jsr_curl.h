@@ -59,6 +59,8 @@ struct _jsr_curlm_t
     jsr_list_t *list;
 
     int running_handles;
+
+    int timeout;
 };
 
 struct _jsr_curl_item_t {
