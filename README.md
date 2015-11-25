@@ -210,26 +210,28 @@ array(1) {
 //
 ```
 
-**自定义客户端错误信息**
+**HTTP协议错误信息**
 ```javascript
 // 400
 {"jsonrpc":"2.0","id":null,"error":{"code":-32400,"message":"Bad Request"}}
-
 // 401
 {"jsonrpc":"2.0","id":null,"error":{"code":-32401,"message":"Unauthorized"}}
-
 // 403
 {"jsonrpc":"2.0","id":null,"error":{"code":-32403,"message":"Forbidden"}}
-
 // 404
 {"jsonrpc":"2.0","id":null,"error":{"code":-32404,"message":"Not Found"}}
 
 // 500
 {"jsonrpc":"2.0","id":null,"error":{"code":-32500,"message":"Internal Server Error"}}
-
 // 502
 {"jsonrpc":"2.0","id":null,"error":{"code":-32502,"message":"Bad Gateway"}}
+...
+
+// unknow
+{"jsonrpc":"2.0","id":null,"error":{"code":-32599,"message":"HTTP Unknow"}}
 ```
+
+**curl错误信息**
 
 
 

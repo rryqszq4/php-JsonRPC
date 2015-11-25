@@ -170,8 +170,8 @@ static int
 _timer_callback(CURLM *multi, long timeout_ms, void *u)
 {
   //php_printf(">>> %s: timeout: %ld ms\n", __func__, timeout_ms);
-  php_jsr_reuqest_object *request = (php_jsr_reuqest_object *) u;
-  request->curlm->timeout = timeout_ms;
+  //php_jsr_reuqest_object *request = (php_jsr_reuqest_object *) u;
+  //request->curlm->timeout = timeout_ms;
   return 0;
 }
 
@@ -186,6 +186,7 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
 {
   TSRMLS_FETCH();
   
+  //php_printf("receive data\n");
   jsr_curl_item_t * item = (jsr_curl_item_t *)ctx;
   zval *object;
   zval *response;
@@ -1007,16 +1008,16 @@ PHP_METHOD(jsonrpc_client, execute)
         start_mcode = curl_multi_socket_action(request->curlm->multi_handle, CURL_SOCKET_TIMEOUT, 0, &(request->curlm->running_handles));
         //php_printf("start_mcode : %d\n", start_mcode);
       }else if (start_mcode == CURLM_OK) {
-        if (request->curlm->timeout > 50){
+        //if (request->curlm->timeout > 5){
           //php_printf("epoll timeout\n");
-          php_error_docref(NULL TSRMLS_CC, E_WARNING, "epoll timeout");
+          //php_error_docref(NULL TSRMLS_CC, E_WARNING, "epoll timeout");
           start_mcode = curl_multi_socket_action(request->curlm->multi_handle, CURL_SOCKET_TIMEOUT, 0, &(request->curlm->running_handles));
           //php_printf("running: %d\n",request->curlm->running_handles);
-          request->curlm->timeout = 1;
+          ///request->curlm->timeout = 1;
           //break;
-        }
+        ///}
         //php_printf("running: CURLM_OK\n");
-        request->curlm->timeout += 5;
+        request->curlm->timeout = (request->curlm->timeout) * 2;
         //break;
       }else {
         php_error_docref(NULL TSRMLS_CC, E_WARNING, "call curl_multi_socket_action error : %d", start_mcode);
