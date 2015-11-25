@@ -5,9 +5,9 @@ Check for jsonrpc presence
 --FILE--
 <?php 
 	$client = new Jsonrpc_Client();
-    $client->call('http://192.168.80.140/jsonrpc-server.php', "addition", array(3,5));
-	$client->call('http://192.168.80.140/jsonrpc-server.php', "addition", array(3,5));
-    $client->call('http://192.168.80.140/jsonrpc-server.php', "addition", array(3,5));
+    $client->call('http://www.baidu.com', "addition", array(3,5));
+	$client->call('http://www.baidu.com', "addition", array(3,5));
+	$client->call('http://www.baidu.com', "addition", array(3,5));
     $client->execute();
 ?>
 --EXPECT--
