@@ -987,6 +987,8 @@ PHP_METHOD(jsonrpc_client, execute)
   request->curlm->running_handles = 1;
   request->context->epoll->loop_total = 0;
   int action;
+  int start_mcode = CURLM_CALL_MULTI_PERFORM;
+  CURLMcode mcode;
 
   /*while (CURLM_CALL_MULTI_PERFORM == 
     curl_multi_socket_action(
@@ -996,34 +998,47 @@ PHP_METHOD(jsonrpc_client, execute)
 
   while (request->curlm->running_handles > 0)
   {
-    request->context->epoll->loop_total = jsr_epoll_loop(request->context->epoll , request->curlm->timeout);
 
+    request->context->epoll->loop_total = jsr_epoll_loop(request->context->epoll , request->curlm->timeout);
+    //php_printf("loop_total: %d\n", request->context->epoll->loop_total);
     if (request->context->epoll->loop_total == 0){
-      //php_printf("%d\n", request->curlm->running_handles);
-      //if (request->curlm->running_handles == 0){
+      
+      if (start_mcode == CURLM_CALL_MULTI_PERFORM){
+        start_mcode = curl_multi_socket_action(request->curlm->multi_handle, CURL_SOCKET_TIMEOUT, 0, &(request->curlm->running_handles));
+        //php_printf("start_mcode : %d\n", start_mcode);
+      }else if (start_mcode == CURLM_OK) {
+        if (request->curlm->timeout > 50){
+          //php_printf("epoll timeout\n");
+          php_error_docref(NULL TSRMLS_CC, E_WARNING, "epoll timeout");
+          start_mcode = curl_multi_socket_action(request->curlm->multi_handle, CURL_SOCKET_TIMEOUT, 0, &(request->curlm->running_handles));
+          //php_printf("running: %d\n",request->curlm->running_handles);
+          request->curlm->timeout = 1;
+          //break;
+        }
+        //php_printf("running: CURLM_OK\n");
+        request->curlm->timeout += 5;
         //break;
-      //}
-      if (request->curlm->running_handles > 0){
-        //php_printf("timeout: %d\n", request->curlm->timeout);
-        curl_multi_socket_action(request->curlm->multi_handle, CURL_SOCKET_TIMEOUT, 0, &(request->curlm->running_handles));
+      }else {
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "call curl_multi_socket_action error : %d", start_mcode);
+        break;
       }
+      
     }else if (request->context->epoll->loop_total > 0){
       int i = 0;
       for (i = 0; i < request->context->epoll->loop_total; i++){
+        //php_printf("action(.events) : %d\n" ,request->context->epoll->events[i].events);
         if (request->context->epoll->events[i].events & EPOLLIN){
           action = CURL_CSELECT_IN;
           //php_printf("action(.events) : %d\n" ,action);
-          curl_multi_socket_action(request->curlm->multi_handle, 
+          mcode = curl_multi_socket_action(request->curlm->multi_handle, 
           request->context->epoll->events[i].data.fd, action, &(request->curlm->running_handles));
+          //php_printf("action-mcode : %d\n", mcode);
         }else if (request->context->epoll->events[i].events & EPOLLOUT){
           action = CURL_CSELECT_OUT;
           //php_printf("action(.events) : %d\n" ,action);
-          curl_multi_socket_action(request->curlm->multi_handle, 
+          mcode = curl_multi_socket_action(request->curlm->multi_handle, 
           request->context->epoll->events[i].data.fd, action, &(request->curlm->running_handles));
-        }else {
-          action = 0;
-          curl_multi_socket_action(request->curlm->multi_handle, 
-          request->context->epoll->events[i].data.fd, 0, &(request->curlm->running_handles));
+          //php_printf("action-mcode : %d\n", mcode);
         }
           
       }
