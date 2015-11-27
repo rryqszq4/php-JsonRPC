@@ -36,6 +36,16 @@ typedef struct _php_jsr_epoll_context {
 
 } php_jsr_epoll_context;
 
+
+typedef struct _php_jsr_curlm_conn {
+
+  jsr_curlm_t *curlm;
+
+  zend_bool is_persistent;
+
+} php_jsr_curlm_conn;
+
+
 typedef struct _php_jsr_request_object {
     zend_object zo;
 
@@ -74,6 +84,11 @@ static php_jsr_epoll_context *_php_jsr_epoll_new(zend_bool is_persistent TSRMLS_
 static php_jsr_epoll_context *_php_jsr_epoll_get(zend_bool is_persistent TSRMLS_DC);
 static void _php_jsr_epoll_destroy(php_jsr_epoll_context *context);
 ZEND_RSRC_DTOR_FUNC(_php_jsr_epoll_dtor);
+
+static php_jsr_curlm_conn *_php_jsr_curlm_new(zend_bool is_persistent TSRMLS_DC);
+static php_jsr_curlm_conn *_php_jsr_curlm_get(zend_bool is_persistent TSRMLS_DC);
+static void _php_jsr_curlm_destroy(php_jsr_curlm_conn *conn);
+ZEND_RSRC_DTOR_FUNC(_php_jsr_curlm_dtor);
 
 PHP_METHOD(jsonrpc_client, __construct);
 PHP_METHOD(jsonrpc_client, __destruct);

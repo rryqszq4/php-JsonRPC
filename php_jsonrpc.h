@@ -44,6 +44,7 @@ extern zend_module_entry jsonrpc_module_entry;
 #endif
 
 extern int le_jsr_epoll_persist;
+extern int le_jsr_curlm_persist;
 
 PHP_MINIT_FUNCTION(jsonrpc);
 PHP_MSHUTDOWN_FUNCTION(jsonrpc);

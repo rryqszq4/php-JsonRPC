@@ -39,6 +39,7 @@
 #include "jsr_utils.h"
 
 int le_jsr_epoll_persist;
+int le_jsr_curlm_persist;
 
 /** {{{ ARG_INFO
  *  */
@@ -548,7 +549,7 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
 
   }
 
-  jsr_curlm_destroy(&jsr_request->curlm);
+  //jsr_curlm_destroy(&jsr_request->curlm);
 
   jsr_curl_global_destroy();
 
@@ -673,11 +674,91 @@ _php_jsr_epoll_destroy(php_jsr_epoll_context *context)
 
 }
 
+static php_jsr_curlm_conn *
+_php_jsr_curlm_new(zend_bool is_persistent TSRMLS_DC)
+{
+  php_jsr_curlm_conn *conn;
+  
+  conn = pemalloc(sizeof(php_jsr_curlm_conn), 1);
+  conn->curlm = jsr_curlm_new();
+
+  //php_printf("new curlm : %p\n", conn->curlm->multi_handle);
+
+  if (!conn->curlm){
+    pefree(conn, is_persistent);
+    return NULL;
+  }
+
+  conn->is_persistent = is_persistent;
+
+  return conn;
+}
+
+static php_jsr_curlm_conn *
+_php_jsr_curlm_get(zend_bool is_persistent TSRMLS_DC)
+{
+  php_jsr_curlm_conn *conn;
+
+  char plist_key[48];
+  int plist_key_len;
+  zend_rsrc_list_entry le, *le_p;
+
+  if (is_persistent){
+    plist_key_len = snprintf(plist_key, 48, "jsonrpc_client_curlm_1");
+    plist_key_len += 1;
+
+    if (zend_hash_find(&EG(persistent_list), plist_key, plist_key_len, (void *)&le_p) == SUCCESS)
+    {
+      if (le_p->type == le_jsr_curlm_persist){
+        //conn = (php_jsr_curlm_conn *) le_p->ptr;
+        //php_printf("get curlm : %p\n", conn->curlm->multi_handle);
+        //php_printf("get timeout : %d\n", conn->curlm->timeout);
+        return (php_jsr_curlm_conn *) le_p->ptr;
+      }
+    }
+  }
+
+  conn = _php_jsr_curlm_new(is_persistent TSRMLS_CC);
+
+  if (!conn){
+    return NULL;
+  }
+
+  if (is_persistent){
+    le.type = le_jsr_curlm_persist;
+    le.ptr = conn;
+
+    if (zend_hash_update(&EG(persistent_list), plist_key, plist_key_len, &le, sizeof(zend_rsrc_list_entry), NULL) == FAILURE)
+    {
+      php_error_docref(NULL TSRMLS_CC, E_ERROR, "Could not register persistent entry for curlm");
+    }
+  }
+
+  return conn;
+}
+
+static void 
+_php_jsr_curlm_destroy(php_jsr_curlm_conn *conn)
+{
+  jsr_curlm_destroy(&conn->curlm);
+  
+  pefree(conn, conn->is_persistent);
+}
+
 ZEND_RSRC_DTOR_FUNC(_php_jsr_epoll_dtor)
 {
   if (rsrc->ptr){
     php_jsr_epoll_context *context = (php_jsr_epoll_context *)rsrc->ptr;
     _php_jsr_epoll_destroy(context);
+    rsrc->ptr = NULL;
+  }
+}
+
+ZEND_RSRC_DTOR_FUNC(_php_jsr_curlm_dtor)
+{
+  if (rsrc->ptr){
+    php_jsr_curlm_conn *conn = (php_jsr_curlm_conn *) rsrc->ptr;
+    _php_jsr_curlm_destroy(conn);
     rsrc->ptr = NULL;
   }
 }
@@ -691,6 +772,8 @@ PHP_METHOD(jsonrpc_client, __construct)
   zend_bool persist = 0;
 
   php_jsr_epoll_context *context;
+  php_jsr_curlm_conn *conn;
+
   php_jsr_reuqest_object *request;
   jsr_epoll_t *epoll;
   jsr_curlm_t *curlm;
@@ -732,13 +815,14 @@ PHP_METHOD(jsonrpc_client, __construct)
   jsr_curl_global_new();
 
   context = _php_jsr_epoll_get(persist TSRMLS_CC);
+  conn = _php_jsr_curlm_get(persist TSRMLS_CC);
 
   MAKE_STD_ZVAL(request_obj);
   object_init_ex(request_obj, php_jsonrpc_client_request_entry);
   request = (php_jsr_reuqest_object *)zend_object_store_get_object(request_obj TSRMLS_CC);
 
   request->context = context;
-  request->curlm = jsr_curlm_new();
+  request->curlm = conn->curlm;
   //request->epoll->epoll_fd = epoll_create(1024);
 
   //request->curlm->multi_handle = curl_multi_init();
@@ -1050,6 +1134,8 @@ PHP_METHOD(jsonrpc_client, execute)
 
   }
 
+  request->curlm->timeout = 1;
+
   /*CURLMsg *msg;
   int msgs_left;
   CURL *easy;
@@ -1303,6 +1389,7 @@ jsonrpc_client_init(int module_number TSRMLS_DC)
 {
 
   le_jsr_epoll_persist = zend_register_list_destructors_ex(NULL, _php_jsr_epoll_dtor, "jsonrpc persistent epoll", module_number);
+  le_jsr_curlm_persist = zend_register_list_destructors_ex(NULL, _php_jsr_curlm_dtor, "jsonrpc persisten curlm", module_number);
 
   memcpy(&jsr_request_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
 
