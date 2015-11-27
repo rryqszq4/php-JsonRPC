@@ -11,6 +11,7 @@ JsonRPC 2.0 Client and Server
 * JSON-RPC 2.0协议规范
 * 并发curl与epoll结合的并行客户端
 * php-fpm中持久化epoll
+* php-fpm中持久化curl_multi队列
 * 服务端支持请求与通知
 * Linux系统
 
@@ -124,7 +125,7 @@ echo $server->execute();
 - Jsonrpc_Client::execute
 
 **持久化**
-> Jsonrpc_client(1) 参数为1的时候，将epoll资源进行持久化，默认使用非持久化。
+> Jsonrpc_client(1) 参数为1的时候，将epoll和curl_multi队列两个资源进行持久化，默认使用非持久化。
 
 **并行调用**
 ```php
