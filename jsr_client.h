@@ -56,6 +56,8 @@ typedef struct _php_jsr_request_object {
 
     zend_bool executed;
 
+    zend_bool is_persistent;
+
 } php_jsr_reuqest_object;
 
 #endif

@@ -549,7 +549,9 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
 
   }
 
-  //jsr_curlm_destroy(&jsr_request->curlm);
+  if (!jsr_request->is_persistent){
+    jsr_curlm_destroy(&jsr_request->curlm);
+  }
 
   jsr_curl_global_destroy();
 
@@ -579,6 +581,7 @@ _php_jsr_request_object_new(zend_class_entry *class_type TSRMLS_DC)
   jsr_request->context = NULL;
   jsr_request->curlm = NULL;
   jsr_request->executed = 0;
+  jsr_request->is_persistent = 0;
 
   zend_object_std_init(&jsr_request->zo, class_type TSRMLS_CC);
 #if PHP_VERSION_ID < 50399
@@ -823,6 +826,7 @@ PHP_METHOD(jsonrpc_client, __construct)
 
   request->context = context;
   request->curlm = conn->curlm;
+  request->is_persistent = persist;
   //request->epoll->epoll_fd = epoll_create(1024);
 
   //request->curlm->multi_handle = curl_multi_init();
