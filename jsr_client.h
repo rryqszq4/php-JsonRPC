@@ -72,7 +72,7 @@ static int _php_count_recursive(zval *array, long mode TSRMLS_DC);
 
 static zval* _jsr_client_prepare_request(zval *procedure, zval *params, zval *custom_id TSRMLS_DC);
 
-static zval* _php_jsr_response_error(long code, char *message);
+static zval* _php_jsr_response_error(long code, char *message, jsr_payload_id *payload_id);
 
 static int _socket_callback(CURL *easy, curl_socket_t fd, int action, void *u, void *s);
 static int _timer_callback(CURLM *multi, long timeout_ms, void *u);

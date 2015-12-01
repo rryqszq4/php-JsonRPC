@@ -128,7 +128,7 @@ jsr_curlm_list_pop(jsr_curlm_t *self)
 }
 
 jsr_curl_item_t *
-jsr_curl_item_new(zval *object, char *url, size_t url_size, char *field, size_t field_size, int response_id)
+jsr_curl_item_new(zval *object, char *url, size_t url_size, char *field, size_t field_size, int response_id, zval *payload_id)
 {
     jsr_curl_item_t *item = (jsr_curl_item_t *)malloc(sizeof(jsr_curl_item_t));
     if (!item)
@@ -158,6 +158,17 @@ jsr_curl_item_new(zval *object, char *url, size_t url_size, char *field, size_t 
     item->slist = curl_slist_append(item->slist, "Accept: application/json"); 
 
     item->response_id = response_id;
+
+    if (Z_TYPE_P(payload_id) == IS_LONG){
+      item->payload_id.type = IS_LONG;
+      item->payload_id.long_id = Z_LVAL_P(payload_id);
+    }else if(Z_TYPE_P(payload_id) == IS_STRING){
+      item->payload_id.type = IS_STRING;
+      memset(item->payload_id.char_id, 0, 64);
+      strcpy(item->payload_id.char_id, Z_STRVAL_P(payload_id));
+    }else {
+      item->payload_id.type = IS_NULL;
+    }
     
     return item;
 }

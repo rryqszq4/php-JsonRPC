@@ -144,6 +144,7 @@ _socket_callback(CURL *easy, curl_socket_t fd, int action, void *u, void *s)
     if (jsr_sock){
       jsr_epoll_del_fd(jsr_epoll, jsr_sock->sockfd);
       free(jsr_sock);
+      jsr_sock = NULL;
     }
   }else {
     if (!jsr_sock){
@@ -236,6 +237,7 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
         add_index_stringl(response, item->response_id, buffer, Z_STRLEN_PP(response_data) + length, 1);
         if (buffer){
           free(buffer);
+          buffer = NULL;
         }
       }
     }else {
@@ -274,177 +276,177 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
         //php_json_decode(response_tmp, ptr, length, 1, 512 TSRMLS_CC);
         //break;
       case 100:
-        response_tmp = _php_jsr_response_error(-32100, "Continue");
+        response_tmp = _php_jsr_response_error(-32100, "Continue", &item->payload_id);
         break;
       case 101:
-        response_tmp = _php_jsr_response_error(-32101, "Switching Protocols");
+        response_tmp = _php_jsr_response_error(-32101, "Switching Protocols", &item->payload_id);
         break;
       case 102:
-        response_tmp = _php_jsr_response_error(-32102, "Processing");
+        response_tmp = _php_jsr_response_error(-32102, "Processing", &item->payload_id);
         break;
 
       case 201:
-        response_tmp = _php_jsr_response_error(-32201, "Created");
+        response_tmp = _php_jsr_response_error(-32201, "Created", &item->payload_id);
         break;
       case 202:
-        response_tmp = _php_jsr_response_error(-32202, "Accepted");
+        response_tmp = _php_jsr_response_error(-32202, "Accepted", &item->payload_id);
         break;
       case 203:
-        response_tmp = _php_jsr_response_error(-32203, "Non-Authoritative Information");
+        response_tmp = _php_jsr_response_error(-32203, "Non-Authoritative Information", &item->payload_id);
         break;
       case 204:
-        response_tmp = _php_jsr_response_error(-32204, "No Content");
+        response_tmp = _php_jsr_response_error(-32204, "No Content", &item->payload_id);
         break;
       case 205:
-        response_tmp = _php_jsr_response_error(-32205, "Reset Content");
+        response_tmp = _php_jsr_response_error(-32205, "Reset Content", &item->payload_id);
         break;
       case 206:
-        response_tmp = _php_jsr_response_error(-32206, "Partial Content");
+        response_tmp = _php_jsr_response_error(-32206, "Partial Content", &item->payload_id);
         break;
       case 207:
-        response_tmp = _php_jsr_response_error(-32207, "Multi-Status");
+        response_tmp = _php_jsr_response_error(-32207, "Multi-Status", &item->payload_id);
         break;
 
       case 300:
-        response_tmp = _php_jsr_response_error(-32300, "Multiple Choices");
+        response_tmp = _php_jsr_response_error(-32300, "Multiple Choices", &item->payload_id);
         break;
       case 301:
-        response_tmp = _php_jsr_response_error(-32301, "Moved Permanently");
+        response_tmp = _php_jsr_response_error(-32301, "Moved Permanently", &item->payload_id);
         break;
       case 302:
-        response_tmp = _php_jsr_response_error(-32302, "Move temporarily");
+        response_tmp = _php_jsr_response_error(-32302, "Move temporarily", &item->payload_id);
         break;
       case 303:
-        response_tmp = _php_jsr_response_error(-32303, "See Other");
+        response_tmp = _php_jsr_response_error(-32303, "See Other", &item->payload_id);
         break;
       case 304:
-        response_tmp = _php_jsr_response_error(-32304, "Not Modified");
+        response_tmp = _php_jsr_response_error(-32304, "Not Modified", &item->payload_id);
         break;
       case 305:
-        response_tmp = _php_jsr_response_error(-32305, "Use Proxy");
+        response_tmp = _php_jsr_response_error(-32305, "Use Proxy", &item->payload_id);
         break;
       case 306:
-        response_tmp = _php_jsr_response_error(-32306, "Switch Proxy");
+        response_tmp = _php_jsr_response_error(-32306, "Switch Proxy", &item->payload_id);
         break;
       case 307:
-        response_tmp = _php_jsr_response_error(-32307, "Temporary Redirect");
+        response_tmp = _php_jsr_response_error(-32307, "Temporary Redirect", &item->payload_id);
         break;
 
 
       case 400:
-        response_tmp = _php_jsr_response_error(-32400, "Bad Request");
+        response_tmp = _php_jsr_response_error(-32400, "Bad Request", &item->payload_id);
         break;
       case 401:
-        response_tmp = _php_jsr_response_error(-32401, "Unauthorized");
+        response_tmp = _php_jsr_response_error(-32401, "Unauthorized", &item->payload_id);
         break;
       case 402:
-        response_tmp = _php_jsr_response_error(-32402, "Payment Required");
+        response_tmp = _php_jsr_response_error(-32402, "Payment Required", &item->payload_id);
         break;
       case 403:
-        response_tmp = _php_jsr_response_error(-32403, "Forbidden");
+        response_tmp = _php_jsr_response_error(-32403, "Forbidden", &item->payload_id);
         break;
       case 404:
-        response_tmp = _php_jsr_response_error(-32404, "Not Found");
+        response_tmp = _php_jsr_response_error(-32404, "Not Found", &item->payload_id);
         break;
       case 405:
-        response_tmp = _php_jsr_response_error(-32405, "Method Not Allowed");
+        response_tmp = _php_jsr_response_error(-32405, "Method Not Allowed", &item->payload_id);
         break;
       case 406:
-        response_tmp = _php_jsr_response_error(-32406, "Not Acceptable");
+        response_tmp = _php_jsr_response_error(-32406, "Not Acceptable", &item->payload_id);
         break;
       case 407:
-        response_tmp = _php_jsr_response_error(-32407, "Proxy Authentication Required");
+        response_tmp = _php_jsr_response_error(-32407, "Proxy Authentication Required", &item->payload_id);
         break;
       case 408:
-        response_tmp = _php_jsr_response_error(-32408, "Request Timeout");
+        response_tmp = _php_jsr_response_error(-32408, "Request Timeout", &item->payload_id);
         break;
       case 409:
-        response_tmp = _php_jsr_response_error(-32409, "Conflict");
+        response_tmp = _php_jsr_response_error(-32409, "Conflict", &item->payload_id);
         break;
       case 410:
-        response_tmp = _php_jsr_response_error(-32410, "Gone");
+        response_tmp = _php_jsr_response_error(-32410, "Gone", &item->payload_id);
         break;
       case 411:
-        response_tmp = _php_jsr_response_error(-32411, "Length Required");
+        response_tmp = _php_jsr_response_error(-32411, "Length Required", &item->payload_id);
         break;
       case 412:
-        response_tmp = _php_jsr_response_error(-32412, "Precondition Failed");
+        response_tmp = _php_jsr_response_error(-32412, "Precondition Failed", &item->payload_id);
         break;
       case 413:
-        response_tmp = _php_jsr_response_error(-32413, "Request Entity Too Large");
+        response_tmp = _php_jsr_response_error(-32413, "Request Entity Too Large", &item->payload_id);
         break;
       case 414:
-        response_tmp = _php_jsr_response_error(-32414, "Request URI Too Long");
+        response_tmp = _php_jsr_response_error(-32414, "Request URI Too Long", &item->payload_id);
         break;
       case 415:
-        response_tmp = _php_jsr_response_error(-32415, "Unsupported Media Type");
+        response_tmp = _php_jsr_response_error(-32415, "Unsupported Media Type", &item->payload_id);
         break;
       case 416:
-        response_tmp = _php_jsr_response_error(-32416, "Requested Range Not Satisfiable");
+        response_tmp = _php_jsr_response_error(-32416, "Requested Range Not Satisfiable", &item->payload_id);
         break;
       case 417:
-        response_tmp = _php_jsr_response_error(-32417, "Expectation Failed");
+        response_tmp = _php_jsr_response_error(-32417, "Expectation Failed", &item->payload_id);
         break;
       case 418:
-        response_tmp = _php_jsr_response_error(-32418, "I'm a teapot");
+        response_tmp = _php_jsr_response_error(-32418, "I'm a teapot", &item->payload_id);
         break;
       case 421:
-        response_tmp = _php_jsr_response_error(-32421, "Misdirected Request");
+        response_tmp = _php_jsr_response_error(-32421, "Misdirected Request", &item->payload_id);
         break;
       case 422:
-        response_tmp = _php_jsr_response_error(-32422, "Unprocessable Entity");
+        response_tmp = _php_jsr_response_error(-32422, "Unprocessable Entity", &item->payload_id);
         break;
       case 423:
-        response_tmp = _php_jsr_response_error(-32423, "Locked");
+        response_tmp = _php_jsr_response_error(-32423, "Locked", &item->payload_id);
         break;
       case 424:
-        response_tmp = _php_jsr_response_error(-32424, "Failed Dependency");
+        response_tmp = _php_jsr_response_error(-32424, "Failed Dependency", &item->payload_id);
         break;
       case 426:
-        response_tmp = _php_jsr_response_error(-32426, "Upgrade Required");
+        response_tmp = _php_jsr_response_error(-32426, "Upgrade Required", &item->payload_id);
         break;
       case 428:
-        response_tmp = _php_jsr_response_error(-32428, "Precondition Required");
+        response_tmp = _php_jsr_response_error(-32428, "Precondition Required", &item->payload_id);
         break;
       case 429:
-        response_tmp = _php_jsr_response_error(-32429, "Too Many Requests");
+        response_tmp = _php_jsr_response_error(-32429, "Too Many Requests", &item->payload_id);
         break;
       case 431:
-        response_tmp = _php_jsr_response_error(-32431, "Request Header Fields Too Large");
+        response_tmp = _php_jsr_response_error(-32431, "Request Header Fields Too Large", &item->payload_id);
         break;
 
       case 500:
-        response_tmp = _php_jsr_response_error(-32500, "Internal Server Error");
+        response_tmp = _php_jsr_response_error(-32500, "Internal Server Error", &item->payload_id);
         break;
       case 501:
-        response_tmp = _php_jsr_response_error(-32501, "Not Implemented");
+        response_tmp = _php_jsr_response_error(-32501, "Not Implemented", &item->payload_id);
         break;
       case 502:
-        response_tmp = _php_jsr_response_error(-32502, "Bad Gateway");
+        response_tmp = _php_jsr_response_error(-32502, "Bad Gateway", &item->payload_id);
         break;
       case 503:
-        response_tmp = _php_jsr_response_error(-32503, "Service Unavailable");
+        response_tmp = _php_jsr_response_error(-32503, "Service Unavailable", &item->payload_id);
         break;
       case 504:
-        response_tmp = _php_jsr_response_error(-32504, "Gateway Timeout");
+        response_tmp = _php_jsr_response_error(-32504, "Gateway Timeout", &item->payload_id);
         break;
       case 505:
-        response_tmp = _php_jsr_response_error(-32505, "HTTP Version Not Supported");
+        response_tmp = _php_jsr_response_error(-32505, "HTTP Version Not Supported", &item->payload_id);
         break;
       case 506:
-        response_tmp = _php_jsr_response_error(-32506, "Variant Also Negotiates");
+        response_tmp = _php_jsr_response_error(-32506, "Variant Also Negotiates", &item->payload_id);
         break;
       case 507:
-        response_tmp = _php_jsr_response_error(-32507, "Insufficient Storage");
+        response_tmp = _php_jsr_response_error(-32507, "Insufficient Storage", &item->payload_id);
         break;
       case 509:
-        response_tmp = _php_jsr_response_error(-32509, "Bandwidth Limit Exceeded");
+        response_tmp = _php_jsr_response_error(-32509, "Bandwidth Limit Exceeded", &item->payload_id);
         break;
       case 510:
-        response_tmp = _php_jsr_response_error(-32510, "Not Extended");
+        response_tmp = _php_jsr_response_error(-32510, "Not Extended", &item->payload_id);
         break;
       default:
-        response_tmp = _php_jsr_response_error(-32599, "HTTP Unknow");
+        response_tmp = _php_jsr_response_error(-32599, "HTTP Unknow", &item->payload_id);
         break;
   }
 
@@ -474,7 +476,7 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
 }
 
 static zval* 
-_php_jsr_response_error(long code, char *message)
+_php_jsr_response_error(long code, char *message, jsr_payload_id *payload_id)
 {
   zval *response_tmp;
   zval *error;
@@ -485,6 +487,19 @@ _php_jsr_response_error(long code, char *message)
   array_init(error);
 
   add_assoc_string(response_tmp, "jsonrpc", "2.0", 1);
+
+  if (payload_id){
+    if (payload_id->type == IS_LONG){
+      add_assoc_long(response_tmp, "id", payload_id->long_id);
+    }else if (payload_id->type == IS_STRING){
+      add_assoc_string(response_tmp, "id", payload_id->char_id, 1);
+    }else {
+      add_assoc_null(response_tmp, "id");
+    }
+  }else {
+    add_assoc_null(response_tmp, "id");
+  }
+
   add_assoc_long(error, "code", code);
   add_assoc_string(error, "message", message, 1);
   
@@ -999,7 +1014,8 @@ PHP_METHOD(jsonrpc_client, call)
       url_len,
       Z_STRVAL_P(payload),
       Z_STRLEN_P(payload),
-      Z_LVAL_P(response_total)
+      Z_LVAL_P(response_total),
+      id
     );
 
   zval_ptr_dtor(&payload);
@@ -1179,8 +1195,9 @@ PHP_METHOD(jsonrpc_client, execute)
   
 
   //jsr_dump_zval(response);
-/*
-  jsr_curl_item_t *item;
+
+
+  /*jsr_curl_item_t *item;
     size_t size;
     size = jsr_list_size(request->curlm->list);
     //php_printf("size >>> %d\n", size);
@@ -1190,8 +1207,15 @@ PHP_METHOD(jsonrpc_client, execute)
       //php_json_decode(response_tmp, item->write_data, item->write_length, 1, 512 TSRMLS_CC);
       //jsr_dump_zval(response_tmp);
       //add_next_index_zval(response,response_tmp);
+      php_printf("payload_id type: %d\n", item->payload_id->type);
+      if (item->payload_id->type == IS_LONG){
+        php_printf("long_id: %d\n", item->payload_id->long_id);
+      }else if (item->payload_id->type == IS_STRING){
+        php_printf("char_id: %s\n", item->payload_id->char_id);
+      }else {
+        php_printf("id null\n");
+      }
 
-      
       size--;
     }
     request->curlm->list->cursor = NULL;
