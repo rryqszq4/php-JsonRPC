@@ -24,6 +24,7 @@ jsr_list_t *
 jsr_list_new(void)
 {
     jsr_list_t *self = (jsr_list_t *)malloc(sizeof(jsr_list_t));
+    self->tail = NULL;
     self->size = 0;
     return self;
 }
@@ -143,8 +144,8 @@ jsr_list_push(jsr_list_t *self, void *item)
     if (!node)
         return -1;
 
-    if (self->autofree)
-        item = strdup((char *) item);
+    //if (self->autofree)
+    //    item = strdup((char *) item);
 
     node->item = item;
     node->next = self->head;
