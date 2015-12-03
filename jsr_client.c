@@ -1179,7 +1179,7 @@ PHP_METHOD(jsonrpc_client, execute)
 
       if (error_code != CURLE_OK){
         if (error_code == CURLE_COULDNT_CONNECT){
-          response_tmp = _php_jsr_response_error(-32007, "curl couldnt connect", &item->payload_id);
+          response_tmp = _php_jsr_response_error(-32007, "Curl Couldnt Connect", &item->payload_id);
           add_index_zval(response, item->response_id, response_tmp);
         }
       }

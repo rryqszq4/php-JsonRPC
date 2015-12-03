@@ -233,6 +233,11 @@ array(1) {
 ```
 
 **curl错误信息**
+```javascript
+// 7 CURLE_COULDNT_CONNECT
+{"jsonrpc":"2.0","id":null,"error":{"code":-32007,"message":"Curl Couldnt Connect"}}
+...
+```
 
 
 
