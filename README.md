@@ -20,9 +20,6 @@ $./configure --with-php-config=/path/to/php-config
 $make && make install
 ```
 
-Examples
---------
-
 Server
 -----------
 **Interface**
@@ -116,8 +113,9 @@ Client
 - Jsonrpc_Client::call
 - Jsonrpc_Client::execute
 
-**Persisten**
-> Jsonrpc_client(1) 参数为1的时候，将epoll和curl_multi队列两个资源进行持久化，默认使用非持久化。
+**Persistent**
+> Jsonrpc_client(1) 
+> When two resource epoll and curl_multi queue persist, the parame is 1. The default use of non-persistent.
 
 **Multi Call**
 ```php
@@ -228,18 +226,27 @@ Error Info
 ```javascript
 // 1 CURLE_UNSUPPORTED_PROTOCOL
 {"jsonrpc":"2.0","id":null,"error":{"code":-32001,"message":"Curl Unsupported Protocol"}}
+
 // 2 CURLE_FAILED_INIT
 {"jsonrpc":"2.0","id":null,"error":{"code":-32002,"message":"Curl Failed Init"}}
+
 // 3 CURLE_URL_MALFORMAT
 {"jsonrpc":"2.0","id":null,"error":{"code":-32003,"message":"Curl Url Malformat"}}
+
 // 4
 {"jsonrpc":"2.0","id":null,"error":{"code":-32004,"message":"Curl Not Built In"}}
+
 // 5 CURLE_COULDNT_RESOLVE_PROXY
 {"jsonrpc":"2.0","id":null,"error":{"code":-32005,"message":"Curl Couldnt Resolve Proxy"}}
+
 // 6 CURLE_COULDNT_RESOLVE_HOST
 {"jsonrpc":"2.0","id":null,"error":{"code":-32006,"message":"Curl Couldnt Resolve Host"}}
+
 // 7 CURLE_COULDNT_CONNECT
 {"jsonrpc":"2.0","id":null,"error":{"code":-32007,"message":"Curl Couldnt Connect"}}
 ...
+
+// CURL ERROR UNKNOW
+{"jsonrpc":"2.0","id":null,"error":{"code":-32099,"message":"Curl Error Unknow"}}
 ```
 

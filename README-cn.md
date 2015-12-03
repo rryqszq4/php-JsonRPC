@@ -236,19 +236,28 @@ array(1) {
 ```javascript
 // 1 CURLE_UNSUPPORTED_PROTOCOL
 {"jsonrpc":"2.0","id":null,"error":{"code":-32001,"message":"Curl Unsupported Protocol"}}
+
 // 2 CURLE_FAILED_INIT
 {"jsonrpc":"2.0","id":null,"error":{"code":-32002,"message":"Curl Failed Init"}}
+
 // 3 CURLE_URL_MALFORMAT
 {"jsonrpc":"2.0","id":null,"error":{"code":-32003,"message":"Curl Url Malformat"}}
+
 // 4
 {"jsonrpc":"2.0","id":null,"error":{"code":-32004,"message":"Curl Not Built In"}}
+
 // 5 CURLE_COULDNT_RESOLVE_PROXY
 {"jsonrpc":"2.0","id":null,"error":{"code":-32005,"message":"Curl Couldnt Resolve Proxy"}}
+
 // 6 CURLE_COULDNT_RESOLVE_HOST
 {"jsonrpc":"2.0","id":null,"error":{"code":-32006,"message":"Curl Couldnt Resolve Host"}}
+
 // 7 CURLE_COULDNT_CONNECT
 {"jsonrpc":"2.0","id":null,"error":{"code":-32007,"message":"Curl Couldnt Connect"}}
 ...
+
+// CURL ERROR UNKNOW
+{"jsonrpc":"2.0","id":null,"error":{"code":-32099,"message":"Curl Error Unknow"}}
 ```
 
 
