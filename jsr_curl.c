@@ -200,6 +200,8 @@ jsr_curl_item_setopt(jsr_curl_item_t *self)
 
     curl_easy_setopt(self->curl_handle, CURLOPT_NOPROGRESS,        1);
 
+    curl_easy_setopt(self->curl_handle, CURLOPT_PRIVATE, self);
+
     //curl_easy_setopt(self->curl_handle, CURLOPT_POSTFIELDS, "{\"jsonrpc\":\"2.0\",\"method\":\"addition\",\"id\":1793433748,\"params\":[3,5]}");
     curl_easy_setopt(self->curl_handle, CURLOPT_POSTFIELDS, self->post_field);
     curl_easy_setopt(self->curl_handle, CURLOPT_POSTFIELDSIZE, self->post_field_size);

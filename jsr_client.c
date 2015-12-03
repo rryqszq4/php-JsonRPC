@@ -521,11 +521,6 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
 */
 
   php_jsr_reuqest_object *jsr_request = (php_jsr_reuqest_object *) object;
-  CURLMsg *msg;
-  int msgs_left;
-  CURL *easy;
-  CURLcode error_code;
-  struct curl_slist *list;
 
   if (!jsr_request->context->is_persistent){
     jsr_epoll_destroy(&(jsr_request->context->epoll));
@@ -533,8 +528,12 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
 
   jsr_curl_item_t *item;
   size_t size;
-  int res;
 
+  /*
+  CURLMsg *msg;
+  int msgs_left;
+  CURL *easy;
+  CURLcode error_code;
   while ((msg = curl_multi_info_read(jsr_request->curlm->multi_handle, &msgs_left)))
   {
     if (msg->msg == CURLMSG_DONE){
@@ -543,21 +542,22 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
 
       //php_printf("error_code : %d\n", error_code);
 
-      curl_easy_getinfo(easy, CURLINFO_PRIVATE, &list);
+      curl_easy_getinfo(easy, CURLINFO_PRIVATE, &item);
 
       curl_multi_remove_handle(jsr_request->curlm->multi_handle, easy);
       curl_easy_cleanup(easy);
-      curl_slist_free_all(list);
+      curl_slist_free_all(item->slist);
+
     }
-  }
+  }*/
 
   while ((size = jsr_list_size(jsr_request->curlm->list)) > 0){
     item = jsr_list_pop(jsr_request->curlm->list);
     if (!jsr_request->executed){
-      curl_easy_getinfo(item->curl_handle, CURLINFO_PRIVATE, &list);
+      //curl_easy_getinfo(item->curl_handle, CURLINFO_PRIVATE, &list);
       curl_multi_remove_handle(jsr_request->curlm->multi_handle, item->curl_handle);
       curl_easy_cleanup(item->curl_handle);
-      curl_slist_free_all(list);
+      curl_slist_free_all(item->slist);
     }
 
     jsr_curl_item_destroy(&item);
@@ -1156,13 +1156,15 @@ PHP_METHOD(jsonrpc_client, execute)
 
   request->curlm->timeout = 1;
 
-  /*CURLMsg *msg;
+
+  CURLMsg *msg;
   int msgs_left;
   CURL *easy;
   CURLcode error_code;
 
   jsr_curl_item_t *item;
   size_t size;
+
   zval *response_tmp;
 
   while ((msg = curl_multi_info_read(request->curlm->multi_handle, &msgs_left)))
@@ -1173,53 +1175,22 @@ PHP_METHOD(jsonrpc_client, execute)
 
       //php_printf("error_code : %d\n", error_code);
 
+      curl_easy_getinfo(easy, CURLINFO_PRIVATE, &item);
+
       if (error_code != CURLE_OK){
-        size = jsr_list_size(request->curlm->list);
-        while (size > 0){
-            item = jsr_list_next(request->curlm->list);
-            if (easy == item->curl_handle){
-              //php_printf("response_id : %d\n", item->response_id);
-              //php_printf("%p\n", item->payload_id);
-              if (error_code == CURLE_COULDNT_CONNECT){
-                response_tmp = _php_jsr_response_error(-32007, "curl couldnt connect");
-                add_index_zval(response, item->response_id, response_tmp);
-              }
-            }
-            size--;
+        if (error_code == CURLE_COULDNT_CONNECT){
+          response_tmp = _php_jsr_response_error(-32007, "curl couldnt connect", &item->payload_id);
+          add_index_zval(response, item->response_id, response_tmp);
         }
-        request->curlm->list->cursor = NULL;
-      }
-    
-    }
-  }*/
-  
-
-  //jsr_dump_zval(response);
-
-
-  /*jsr_curl_item_t *item;
-    size_t size;
-    size = jsr_list_size(request->curlm->list);
-    //php_printf("size >>> %d\n", size);
-    while (size > 0){
-      item = jsr_list_next(request->curlm->list);
-
-      //php_json_decode(response_tmp, item->write_data, item->write_length, 1, 512 TSRMLS_CC);
-      //jsr_dump_zval(response_tmp);
-      //add_next_index_zval(response,response_tmp);
-      php_printf("payload_id type: %d\n", item->payload_id->type);
-      if (item->payload_id->type == IS_LONG){
-        php_printf("long_id: %d\n", item->payload_id->long_id);
-      }else if (item->payload_id->type == IS_STRING){
-        php_printf("char_id: %s\n", item->payload_id->char_id);
-      }else {
-        php_printf("id null\n");
       }
 
-      size--;
+      curl_multi_remove_handle(request->curlm->multi_handle, easy);
+      curl_easy_cleanup(easy);
+      curl_slist_free_all(item->slist);
     }
-    request->curlm->list->cursor = NULL;
-*/
+  }
+
+
 /*#####################*/
 
   zval **current;
