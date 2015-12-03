@@ -3,29 +3,36 @@ JsonRPC 2.0 Client and Server
 
 [![Build Status](https://travis-ci.org/rryqszq4/JsonRPC.svg)](https://travis-ci.org/rryqszq4/JsonRPC)
 
-Lightweight, fast multi Json-RPC 2.0 client/server in php extension, base on multi_curl and epoll of the Client. Compliance [http://www.jsonrpc.org/](http://www.jsonrpc.org/) protocol specification. [中文](https://github.com/rryqszq4/JsonRPC/blob/master/README-cn.md)
+轻量级,高性能 JsonRPC 2.0 客户端和服务端的php扩展，基于 multi_curl + epoll的并行客户端。Jsonrpc_Client使用libcurl库的并行接口调取服务，使用IO多路复用的epoll去监听curl的IO事件。Jsonrpc_Server支持php-fpm或swoole。遵守[http://www.jsonrpc.org/](http://www.jsonrpc.org/)协议规范。
+[English](https://github.com/rryqszq4/JsonRPC/blob/master/README.md)
 
-Requirement
+特性
+-----------
+* JSON-RPC 2.0协议规范
+* 并发curl与epoll结合的并行客户端
+* php-fpm中持久化epoll
+* php-fpm中持久化curl_multi队列
+* 服务端支持请求与通知
+* Linux系统(需要支持epoll)
+
+PHP环境
 -----------
 - PHP 5.3.*
 - PHP 5.4.* 
 - PHP 5.5.* 
 - PHP 5.6.* 
 
-Install
--------
+安装
+-----------
 ```
 $/path/to/phpize
 $./configure --with-php-config=/path/to/php-config
 $make && make install
 ```
 
-Examples
---------
-
-Server
+服务端
 -----------
-**Interface**
+**接口**
 - Jsonrpc_Server::__construct
 - Jsonrpc_Server::register
 - Jsonrpc_Server::bind
@@ -37,7 +44,7 @@ Server
 - Jsonrpc_Server::getresponse
 - Jsonrpc_Server::execute
 
-**Register Function**
+**注册函数**
 ```php
 <?php
 
@@ -45,7 +52,7 @@ $server = new Jsonrpc_Server();
 
 // style one function variable
 $add1 = function($a, $b){
-  return $a + $b;
+	return $a + $b;
 };
 $server->register('addition1', $add1);
 
@@ -78,7 +85,7 @@ echo $server->execute();
 ?>
 ```
 
-**Bind Method**
+**绑定方法**
 ```php
 <?php
 
@@ -109,17 +116,18 @@ echo $server->execute();
 
 ```
 
-Client
+
+客户端
 ------------
-**Interface**
+**接口**
 - Jsonrpc_Client::__construct
 - Jsonrpc_Client::call
 - Jsonrpc_Client::execute
 
-**Persisten**
+**持久化**
 > Jsonrpc_client(1) 参数为1的时候，将epoll和curl_multi队列两个资源进行持久化，默认使用非持久化。
 
-**Multi Call**
+**并行调用**
 ```php
 <?php
 
@@ -158,7 +166,7 @@ array(2) {
 */
 ?>
 ```
-**Custom ID**
+**自定义 id**
 ```php
 <?php
 
@@ -184,26 +192,26 @@ array(1) {
 ?>
 ```
 
-Error Info
+常见错误信息
 --------------
-**jsonrpc 2.0 Error**
+**jsonrpc 2.0 错误信息**
 ```javascript
-// Parse error
+// 语法解析错误
 {"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}
 
-// Invalid Request
+// 无效请求
 {"jsonrpc":"2.0","id":null,"error":{"code":-32600,"message":"Invalid Request"}}
 
-// Method not found
+// 找不到方法
 {"jsonrpc":"2.0","id":null,"error":{"code":-32601,"message":"Method not found"}}
 
-// Invalid params
+// 无效的参数
 {"jsonrpc":"2.0","id":null,"error":{"code":-32602,"message":"Invalid params"}}
 
 //
 ```
 
-**HTTP Error**
+**HTTP协议错误信息**
 ```javascript
 // 400
 {"jsonrpc":"2.0","id":null,"error":{"code":-32400,"message":"Bad Request"}}
@@ -224,7 +232,7 @@ Error Info
 {"jsonrpc":"2.0","id":null,"error":{"code":-32599,"message":"HTTP Unknow"}}
 ```
 
-**Curl Error**
+**curl错误信息**
 ```javascript
 // 1 CURLE_UNSUPPORTED_PROTOCOL
 {"jsonrpc":"2.0","id":null,"error":{"code":-32001,"message":"Curl Unsupported Protocol"}}
@@ -242,4 +250,9 @@ Error Info
 {"jsonrpc":"2.0","id":null,"error":{"code":-32007,"message":"Curl Couldnt Connect"}}
 ...
 ```
+
+
+
+
+
 
