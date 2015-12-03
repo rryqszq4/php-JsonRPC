@@ -1178,10 +1178,52 @@ PHP_METHOD(jsonrpc_client, execute)
       curl_easy_getinfo(easy, CURLINFO_PRIVATE, &item);
 
       if (error_code != CURLE_OK){
-        if (error_code == CURLE_COULDNT_CONNECT){
-          response_tmp = _php_jsr_response_error(-32007, "Curl Couldnt Connect", &item->payload_id);
-          add_index_zval(response, item->response_id, response_tmp);
+        switch (error_code)
+        {
+          case CURLE_UNSUPPORTED_PROTOCOL:
+            response_tmp = _php_jsr_response_error(-32001, "Curl Unsupported Protocol", &item->payload_id);
+            break;
+          case CURLE_FAILED_INIT:
+            response_tmp = _php_jsr_response_error(-32002, "Curl Failed Init", &item->payload_id);
+            break;
+          case CURLE_URL_MALFORMAT:
+            response_tmp = _php_jsr_response_error(-32003, "Curl Url Malformat", &item->payload_id);
+            break;
+          case 4:
+            response_tmp = _php_jsr_response_error(-32004, "Curl Not Built In", &item->payload_id);
+            break;
+          case CURLE_COULDNT_RESOLVE_PROXY:
+            response_tmp = _php_jsr_response_error(-32005, "Curl Couldnt Resolve Proxy", &item->payload_id);
+            break;
+          case CURLE_COULDNT_RESOLVE_HOST:
+            response_tmp = _php_jsr_response_error(-32006, "Curl Couldnt Resolve Host", &item->payload_id);
+            break;
+          case CURLE_COULDNT_CONNECT:
+            response_tmp = _php_jsr_response_error(-32007, "Curl Couldnt Connect", &item->payload_id);
+            break;
+          case CURLE_OUT_OF_MEMORY:
+            response_tmp = _php_jsr_response_error(-32027, "Curl Out Of Memory", &item->payload_id);
+            break;
+          case CURLE_OPERATION_TIMEDOUT:
+            response_tmp = _php_jsr_response_error(-32028, "Curl Operaiton Timeout", &item->payload_id);
+            break;
+          case CURLE_RANGE_ERROR:
+            response_tmp = _php_jsr_response_error(-32033, "Curl Range Error", &item->payload_id);
+            break;
+          case CURLE_HTTP_POST_ERROR:
+            response_tmp = _php_jsr_response_error(-32034, "Curl Http Post Error", &item->payload_id);
+            break;
+          case CURLE_SEND_ERROR:
+            response_tmp = _php_jsr_response_error(-32055, "Curl Send Error", &item->payload_id);
+            break;
+          case CURLE_RECV_ERROR:
+            response_tmp = _php_jsr_response_error(-32056, "Curl Recv Error", &item->payload_id);
+            break;
+          default:
+            response_tmp = _php_jsr_response_error(-32099, "Curl Error Unknow", &item->payload_id);
+            break;
         }
+        add_index_zval(response, item->response_id, response_tmp);
       }
 
       curl_multi_remove_handle(request->curlm->multi_handle, easy);
