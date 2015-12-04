@@ -22,9 +22,9 @@
 #define PHP_JSONRPC_H
 
 #include "php.h"
-#include "ext/standard/php_smart_str.h"
+//#include "ext/standard/php_smart_str.h"
 
-#define PHP_JSONRPC_VERSION "0.0.7"
+#define PHP_JSONRPC_VERSION "0.0.8"
 
 #define PHP_JSONRPC_DEBUG   0
 
@@ -41,6 +41,32 @@ extern zend_module_entry jsonrpc_module_entry;
 
 #ifdef ZTS
 #include "TSRM.h"
+#endif
+
+#if PHP_VERSION_ID < 70000
+#define JSR_ZVAL_STRINGL(zval, name, len, dup){ \
+    ZVAL_STRINGL(zval, name, len, dup);\
+  }
+#else
+#define JSR_ZVAL_STRINGL(zval, name, len, dup){ \
+    ZVAL_STRINGL(zval, name, len);\
+  }
+#endif
+
+#if PHP_VERSION_ID < 70000
+#define JSR_ZVAL_STRING(zval, name, dup){ \
+    ZVAL_STRING(zval, name, dup);\
+  }
+#else
+#define JSR_ZVAL_STRING(zval, name, dup){ \
+    ZVAL_STRINGL(zval, name);\
+  }
+#endif
+
+#if PHP_VERSION_ID < 70000
+#define JSR_STRING char
+#else
+#define JSR_STRING zend_string
 #endif
 
 extern int le_jsr_epoll_persist;
