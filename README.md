@@ -5,6 +5,8 @@ JsonRPC 2.0 Client and Server
 
 Lightweight, fast multi Json-RPC 2.0 client/server in php extension, base on multi_curl and epoll of the Client. Compliance [http://www.jsonrpc.org/](http://www.jsonrpc.org/) protocol specification. [中文](https://github.com/rryqszq4/JsonRPC/blob/master/README-cn.md)
 
+[php7](https://github.com/rryqszq4/php7-ext-jsonrpc)
+
 Features
 --------
 * JSON-RPC 2.0 protocol
