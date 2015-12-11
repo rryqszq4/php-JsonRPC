@@ -187,6 +187,8 @@ _read_callback(void *ptr, size_t size, size_t nmemb, void *ctx)
 static void
 _co_write(struct schedule *s, void *ctx)
 {
+  TSRMLS_FETCH();
+  
   jsr_curl_item_t *item = (jsr_curl_item_t *) ctx;
   zval *object = item->object;
   zval *response, *response_total;;
