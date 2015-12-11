@@ -38,6 +38,7 @@
 
 #include "jsr_list.h"
 #include "jsr_utils.h"
+#include "coroutine.h"
 
 typedef struct _jsr_curl_t jsr_curl_t;
 typedef struct _jsr_curlm_t jsr_curlm_t;
@@ -62,6 +63,8 @@ struct _jsr_curlm_t
     int running_handles;
 
     int timeout;
+
+    struct schedule *s;
 };
 
 struct _jsr_payload_id {
@@ -84,7 +87,7 @@ struct _jsr_curl_item_t {
 
     size_t (*write_callback)(char *ptr, size_t size, size_t nmemb, void *ctx);
     size_t (*read_callback)(void *ptr, size_t size, size_t nmemb, void *ctx);
-    //char write_data[8192];
+    char  *write_data;
     size_t write_length;
 
     zval *object;
@@ -92,6 +95,8 @@ struct _jsr_curl_item_t {
 
     jsr_payload_id payload_id;
 
+    struct schedule *s;
+    int co;
 };
 
 struct _jsr_curl_sockinfo_t {

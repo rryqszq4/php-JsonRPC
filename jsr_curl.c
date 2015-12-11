@@ -169,6 +169,9 @@ jsr_curl_item_new(zval *object, char *url, size_t url_size, char *field, size_t 
     }else {
       item->payload_id.type = IS_NULL;
     }
+
+    item->write_data = NULL;
+    item->write_length = 0;
     
     return item;
 }
