@@ -3,9 +3,9 @@ JsonRPC 2.0 Client and Server
 
 [![Build Status](https://travis-ci.org/rryqszq4/JsonRPC.svg)](https://travis-ci.org/rryqszq4/JsonRPC)
 
-Lightweight, fast multi Json-RPC 2.0 client/server in php extension, base on multi_curl and epoll of the Client. Compliance [http://www.jsonrpc.org/](http://www.jsonrpc.org/) protocol specification. [中文](https://github.com/rryqszq4/JsonRPC/blob/master/README-cn.md)
+Lightweight, fast multi Json-RPC 2.0 client/server in php extension, base on multi_curl and epoll of the Client. Coroutine in async of writeback, just look like the sync of php response and it is. Compliance [http://www.jsonrpc.org/](http://www.jsonrpc.org/) protocol specification. [中文](https://github.com/rryqszq4/JsonRPC/blob/master/README-cn.md)
 
-[php7](https://github.com/rryqszq4/php7-ext-jsonrpc)
+[jsonrpc in php7](https://github.com/rryqszq4/php7-ext-jsonrpc)
 
 Features
 --------
@@ -13,6 +13,7 @@ Features
 * Base on curl and epoll of the multi client
 * Persistent epoll in php-fpm
 * Persistent curl_multi queue in php-fpm
+* Coroutine in async
 * Support message and notifi notification
 * Linux only(need to epoll)
 

@@ -3,10 +3,10 @@ JsonRPC 2.0 Client and Server
 
 [![Build Status](https://travis-ci.org/rryqszq4/JsonRPC.svg)](https://travis-ci.org/rryqszq4/JsonRPC)
 
-轻量级,高性能 JsonRPC 2.0 客户端和服务端的php扩展，基于 multi_curl + epoll的并行客户端。Jsonrpc_Client使用libcurl库的并行接口调取服务，使用IO多路复用的epoll去监听curl的IO事件。Jsonrpc_Server支持php-fpm或swoole。遵守[http://www.jsonrpc.org/](http://www.jsonrpc.org/)协议规范。
+轻量级,高性能 JsonRPC 2.0 客户端和服务端的php扩展，基于 multi_curl + epoll的并行客户端。Jsonrpc_Client使用libcurl库的并行接口调取服务，使用IO多路复用的epoll去监听curl的IO事件，使用协程可以同步返回rpc的数据，但底层其实是异步的。Jsonrpc_Server支持php-fpm或swoole。遵守[http://www.jsonrpc.org/](http://www.jsonrpc.org/)协议规范。
 [English](https://github.com/rryqszq4/JsonRPC/blob/master/README.md)
 
-[php7](https://github.com/rryqszq4/php7-ext-jsonrpc)
+[jsonrpc in php7](https://github.com/rryqszq4/php7-ext-jsonrpc)
 
 特性
 -----------
@@ -14,6 +14,7 @@ JsonRPC 2.0 Client and Server
 * 并发curl与epoll结合的并行客户端
 * php-fpm中持久化epoll
 * php-fpm中持久化curl_multi队列
+* 底层使用协程
 * 服务端支持请求与通知
 * Linux系统(需要支持epoll)
 
