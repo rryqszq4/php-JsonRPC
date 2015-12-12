@@ -36,16 +36,16 @@ $make && make install
 服务端
 -----------
 **接口**
-- Jsonrpc_Server::__construct
-- Jsonrpc_Server::register
-- Jsonrpc_Server::bind
-- Jsonrpc_Server::jsonformat
-- Jsonrpc_Server::rpcformat
-- Jsonrpc_Server::executeprocedure
-- Jsonrpc_Server::executecallback
-- Jsonrpc_Server::executemethod
-- Jsonrpc_Server::getresponse
-- Jsonrpc_Server::execute
+- Jsonrpc_Server::__construct(mixed $payload, array $callbacks, array $classes)
+- Jsonrpc_Server::register(string $name, mixed $closure)
+- Jsonrpc_Server::bind(string $procedure, mixed $classname, string $method)
+- Jsonrpc_Server::jsonformat()
+- Jsonrpc_Server::rpcformat(mixed $payload)
+- Jsonrpc_Server::executeprocedure(string $procedure, array $params)
+- Jsonrpc_Server::executecallback(object $closure, array $params)
+- Jsonrpc_Server::executemethod(string $class, string $method, array $params)
+- Jsonrpc_Server::getresponse(array $data, array $payload)
+- Jsonrpc_Server::execute()
 
 **注册函数**
 ```php
@@ -119,13 +119,43 @@ echo $server->execute();
 
 ```
 
+**swoole jsonrpc server**
+```php
+<?php
+
+$http = new swoole_http_server("127.0.0.1", 9501);
+
+function add($a, $b){
+  return $a + $b;
+}
+
+$http->on('Request', function($request, $response){
+  if ($request->server['request_uri'] == "/jsonrpc_server"){
+    $payload = $request->rawContent();
+    
+    $jsr_server = new Jsonrpc_Server($payload);
+    $jsr_server->register('addition', 'add');
+    $res = $jsr_server->execute();
+    $response->end($res);
+
+    unset($payload);
+    unset($jsr_server);
+    unset($res);
+  }else {
+          $response->end("error");
+  }
+});
+$http->start();
+?>
+```
 
 客户端
 ------------
 **接口**
-- Jsonrpc_Client::__construct
-- Jsonrpc_Client::call
-- Jsonrpc_Client::execute
+- Jsonrpc_Client::__construct(boolean $persist)
+- Jsonrpc_Client::call(string $url, string $procedure, array $params, mixed $id)
+- Jsonrpc_Client::execute()
+- Jsonrpc_Client::__destruct()
 
 **持久化**
 > Jsonrpc_client(1) 参数为1的时候，将epoll和curl_multi队列两个资源进行持久化，默认使用非持久化。
