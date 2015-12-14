@@ -207,7 +207,7 @@ PHP_METHOD(jsonrpc_server, __construct)
   zval *classes = NULL;
   zval *object = getThis();
 
-  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|zzz", 
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|zaa", 
     &payload, &callbacks, &classes) == FAILURE)
   {
     RETURN_NULL();
@@ -229,7 +229,7 @@ PHP_METHOD(jsonrpc_server, __construct)
     zend_update_property(php_jsonrpc_server_entry,
       object, "callbacks", sizeof("callbacks")-1, callbacks TSRMLS_CC
     );
-    //zval_ptr_dtor(&callbacks);
+    zval_ptr_dtor(&callbacks);
   }
 
   if (classes){
@@ -866,7 +866,7 @@ PHP_METHOD(jsonrpc_server, executemethod)
   {
     return ;
   }
-
+  
   MAKE_STD_ZVAL(zcallable);
   array_init(zcallable);
   add_next_index_zval(zcallable, class);
@@ -901,7 +901,7 @@ PHP_METHOD(jsonrpc_server, executemethod)
     i++;
   }
 
-  //shurrik_dump_zval(closure);
+  //jsr_dump_zval(zcallable);
   if (call_user_function(EG(function_table), NULL, zcallable, result_ptr, func_params_num, func_params TSRMLS_CC) == FAILURE)
   {
     php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed calling closure");
