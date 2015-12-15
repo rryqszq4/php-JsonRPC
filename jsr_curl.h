@@ -97,6 +97,7 @@ struct _jsr_curl_item_t {
 
     struct schedule *s;
     int co;
+    int co_start;
 };
 
 struct _jsr_curl_sockinfo_t {

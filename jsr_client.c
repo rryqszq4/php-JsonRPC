@@ -60,6 +60,10 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(jsonrpc_client_execute_arginfo, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(jsonrpc_client_connect_arginfo, 0, 0, 1)
+    ZEND_ARG_INFO(0, url)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(jsonrpc_client_dorequest_arginfo, 0, 0, 1)
   ZEND_ARG_INFO(0, payload)
 ZEND_END_ARG_INFO()
@@ -201,8 +205,8 @@ _co_write(struct schedule *s, void *ctx)
   );
 
   int i;
-  for (i = 0; i < Z_LVAL_P(response_total); i++){
-    if (i == Z_LVAL_P(response_total)-1){
+  for (i = item->co_start; i < (item->co_start + Z_LVAL_P(response_total)); i++){
+    if (i == (item->co_start + Z_LVAL_P(response_total) - 1)){
       //php_printf("coroutine one %d : %d\n", coroutine_running(s), item->response_id);
       add_index_stringl(response, item->response_id, item->write_data, item->write_length, 1);
       zend_update_property(php_jsonrpc_client_entry, 
@@ -279,7 +283,7 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
         memset(item->write_data, 0, item->write_length);
         strncpy(item->write_data, ptr, item->write_length+1);
         int co_id;
-        for (co_id = 0; co_id < Z_LVAL_P(response_total); co_id++){
+        for (co_id = item->co_start; co_id < (item->co_start + Z_LVAL_P(response_total)); co_id++){
           coroutine_resume(item->s, co_id);
         }
       }else {
@@ -854,6 +858,10 @@ PHP_METHOD(jsonrpc_client, __construct)
   zend_update_property_long(php_jsonrpc_client_entry,
       object, "response_total", sizeof("response_total")-1, 0 TSRMLS_CC
     );
+
+  zend_update_property_long(php_jsonrpc_client_entry,
+      object, "coroutine_start", sizeof("coroutine_start")-1, 0 TSRMLS_CC
+    );
   
 }
 
@@ -897,6 +905,7 @@ PHP_METHOD(jsonrpc_client, call)
   zval *object;
   zval *request_obj;
   zval *response_total;
+  zval *coroutine_start;
 
   object = getThis();
 
@@ -912,6 +921,10 @@ PHP_METHOD(jsonrpc_client, call)
 
   response_total = zend_read_property(
       php_jsonrpc_client_entry, object, "response_total", sizeof("response_total")-1, 0 TSRMLS_CC
+    );
+
+  coroutine_start = zend_read_property(
+      php_jsonrpc_client_entry, object, "coroutine_start", sizeof("coroutine_start")-1, 0 TSRMLS_CC
     );
 
   request = (php_jsr_reuqest_object *)zend_object_store_get_object(request_obj TSRMLS_CC);
@@ -968,6 +981,8 @@ PHP_METHOD(jsonrpc_client, call)
 
   jsr_curl_item->s = request->curlm->s;
   jsr_curl_item->co = coroutine_new(jsr_curl_item->s, _co_write, jsr_curl_item);
+  //php_printf("co: %d\n", jsr_curl_item->co);
+  jsr_curl_item->co_start = Z_LVAL_P(coroutine_start);
 
   //jsr_curl_item->read_callback = _read_callback;
   jsr_curl_item->write_callback = _write_callback;
@@ -990,6 +1005,7 @@ PHP_METHOD(jsonrpc_client, execute)
   zval *payload;
   zval *response;
   zval *response_total;
+  zval *coroutine_start;
 
   php_jsr_reuqest_object *request;
 
@@ -1011,9 +1027,18 @@ PHP_METHOD(jsonrpc_client, execute)
   response = zend_read_property(
     php_jsonrpc_client_entry, object, "response", sizeof("response")-1, 0 TSRMLS_CC
   );
+  array_init(response);
+  zend_update_property(php_jsonrpc_client_entry, 
+      object, "response", sizeof("response")-1, response TSRMLS_CC
+    );
+
+
   response_total = zend_read_property(
     php_jsonrpc_client_entry, object, "response_total", sizeof("response_total")-1, 0 TSRMLS_CC
   );
+  coroutine_start = zend_read_property(
+      php_jsonrpc_client_entry, object, "coroutine_start", sizeof("coroutine_start")-1, 0 TSRMLS_CC
+    );
 
 
   request->curlm->running_handles = 1;
@@ -1046,7 +1071,7 @@ PHP_METHOD(jsonrpc_client, execute)
       }
       
     }else if (request->context->epoll->loop_total > 0){
-      int i = 0;
+      int i;
       for (i = 0; i < request->context->epoll->loop_total; i++){
         //php_printf("action(.events) : %d\n" ,request->context->epoll->events[i].events);
         if (request->context->epoll->events[i].events & EPOLLIN){
@@ -1153,7 +1178,7 @@ PHP_METHOD(jsonrpc_client, execute)
         zval_ptr_dtor(&response_tmp);
 
         int co_id;
-        for (co_id = 0; co_id < Z_LVAL_P(response_total); co_id++){
+        for (co_id = item->co_start; co_id < (item->co_start + Z_LVAL_P(response_total)); co_id++){
           coroutine_resume(item->s, co_id);
         }
       }
@@ -1188,14 +1213,34 @@ PHP_METHOD(jsonrpc_client, execute)
     }
 
   }
+
+  zend_update_property_long(php_jsonrpc_client_entry,
+      object, "coroutine_start", sizeof("coroutine_start")-1, Z_LVAL_P(response_total) TSRMLS_CC
+    );
+
+  zend_update_property_long(php_jsonrpc_client_entry, 
+    object, "response_total", sizeof("response_total")-1, 0 TSRMLS_CC
+  );
+
   RETVAL_ZVAL(response, 1, 0);
 
 }
 
+PHP_METHOD(jsonrpc_client, connect)
+{
+  char *url;
+  long url_len;
+
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &url, &url_len) == FAILURE)
+  {
+    return ;
+  }
+}
 
 static const zend_function_entry jsonrpc_client_class_functions[] = {
   PHP_ME(jsonrpc_client, __construct, jsonrpc_client_construct_arginfo, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
   PHP_ME(jsonrpc_client, __destruct,  jsonrpc_client_destruct_arginfo,  ZEND_ACC_PUBLIC | ZEND_ACC_DTOR)
+  PHP_ME(jsonrpc_client, connect,     jsonrpc_client_connect_arginfo,   ZEND_ACC_PUBLIC)
   PHP_ME(jsonrpc_client, call,        jsonrpc_client_call_arginfo,      ZEND_ACC_PUBLIC)
   PHP_ME(jsonrpc_client, execute,     jsonrpc_client_execute_arginfo,   ZEND_ACC_PUBLIC)
   {NULL, NULL, NULL}
@@ -1216,7 +1261,7 @@ jsonrpc_client_init(int module_number TSRMLS_DC)
   zend_declare_property_null(php_jsonrpc_client_entry, "response", sizeof("response")-1, ZEND_ACC_PUBLIC TSRMLS_CC);
   zend_declare_property_null(php_jsonrpc_client_entry, "request",  sizeof("request")-1,  ZEND_ACC_PUBLIC TSRMLS_CC);
   zend_declare_property_long(php_jsonrpc_client_entry, "response_total",  sizeof("response_total")-1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
-
+  zend_declare_property_long(php_jsonrpc_client_entry, "coroutine_start", sizeof("coroutine_start")-1, 0 ,ZEND_ACC_PUBLIC TSRMLS_CC);
 
   zend_class_entry jsonrpc_client_request_class_entry;
   INIT_CLASS_ENTRY(jsonrpc_client_request_class_entry, "Jsonrpc_Client_Request", NULL);
