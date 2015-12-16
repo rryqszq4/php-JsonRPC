@@ -153,12 +153,26 @@ Client
 **Interface**
 - Jsonrpc_Client::__construct(boolean $persist)
 - Jsonrpc_Client::call(string $url, string $procedure, array $params, mixed $id)
+- Jsonrpc_Client::connect(string $url);
+- Jsonrpc_Client::__call(string $procedure, array $params);
 - Jsonrpc_Client::execute()
 - Jsonrpc_Client::__destruct()
 
 **Persistent**
 > Jsonrpc_client(1) 
 > When two resource epoll and curl_multi queue persist, the parame is 1. The default use of non-persistent.
+
+**Connect Call**
+```php
+<?php
+
+$client = new Jsonrpc_Client(1);
+$client->connect('http://localhost/server.php');
+$client->addition1(3,5);
+$result = $client->execute();
+
+?>
+```
 
 **Multi Call**
 ```php

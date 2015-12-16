@@ -154,11 +154,25 @@ $http->start();
 **接口**
 - Jsonrpc_Client::__construct(boolean $persist)
 - Jsonrpc_Client::call(string $url, string $procedure, array $params, mixed $id)
+- Jsonrpc_Client::connect(string $url);
+- Jsonrpc_Client::__call(string $procedure, array $params);
 - Jsonrpc_Client::execute()
 - Jsonrpc_Client::__destruct()
 
 **持久化**
 > Jsonrpc_client(1) 参数为1的时候，将epoll和curl_multi队列两个资源进行持久化，默认使用非持久化。
+
+**直接调用**
+```php
+<?php
+
+$client = new Jsonrpc_Client(1);
+$client->connect('http://localhost/server.php');
+$client->addition1(3,5);
+$result = $client->execute();
+
+?>
+```
 
 **并行调用**
 ```php
