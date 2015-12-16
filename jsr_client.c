@@ -901,7 +901,7 @@ PHP_METHOD(jsonrpc_client, call)
   char *procedure;
   long procedure_len;
   zval *params;
-  zval *id;
+  zval *id = NULL;
   zval *payload;
 
   zval **payload_id;
@@ -1268,6 +1268,7 @@ PHP_METHOD(jsonrpc_client, __call)
   {
     return ;
   }
+  //jsr_dump_zval(params);
 
   INIT_ZVAL(retval);
 
@@ -1279,7 +1280,7 @@ PHP_METHOD(jsonrpc_client, __call)
   MAKE_STD_ZVAL(method);
   ZVAL_STRINGL(method, method_s, method_len, 0);
 
-  exec_params = emalloc(sizeof(zval *) * 2);
+  exec_params = emalloc(sizeof(zval *) * 3);
   exec_params[0] = request_url;
   exec_params[1] = method;
   exec_params[2] = params;
