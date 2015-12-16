@@ -64,6 +64,11 @@ ZEND_BEGIN_ARG_INFO_EX(jsonrpc_client_connect_arginfo, 0, 0, 1)
     ZEND_ARG_INFO(0, url)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(jsonrpc_client___call_arginfo, 0, 0, 2)
+  ZEND_ARG_INFO(0, method)
+  ZEND_ARG_INFO(0, params)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(jsonrpc_client_dorequest_arginfo, 0, 0, 1)
   ZEND_ARG_INFO(0, payload)
 ZEND_END_ARG_INFO()
@@ -1231,16 +1236,72 @@ PHP_METHOD(jsonrpc_client, connect)
   char *url;
   long url_len;
 
+  zval *object;
+  object = getThis();
+
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &url, &url_len) == FAILURE)
   {
     return ;
   }
+
+  zend_update_property_stringl(php_jsonrpc_client_entry,
+      object, "request_url", sizeof("request_url")-1, url, url_len TSRMLS_CC
+    );
+}
+
+PHP_METHOD(jsonrpc_client, __call)
+{
+  char *method_s;
+  long method_len;
+
+  zval *method;
+  zval *params;
+  zval *request_url;
+  zval *func;
+  zval **exec_params;
+  zval retval;
+
+  zval *object;
+  object = getThis();
+
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sa", &method_s, &method_len, &params) == FAILURE)
+  {
+    return ;
+  }
+
+  INIT_ZVAL(retval);
+
+  request_url = zend_read_property(
+      php_jsonrpc_client_entry, object, "request_url", sizeof("request_url")-1, 0 TSRMLS_CC
+    );
+  jsr_dump_zval(request_url);
+
+  MAKE_STD_ZVAL(method);
+  ZVAL_STRINGL(method, method_s, method_len, 0);
+
+  exec_params = emalloc(sizeof(zval *) * 2);
+  exec_params[0] = request_url;
+  exec_params[1] = method;
+  exec_params[2] = params;
+
+  MAKE_STD_ZVAL(func);
+  ZVAL_STRINGL(func, "call", sizeof("call") - 1, 0);
+
+  if (call_user_function(NULL, &object, func, &retval, 3, exec_params TSRMLS_CC) == FAILURE){
+    php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed calling Jsonrpc_Client::call()");
+    return ;
+  }
+
+  //zval_ptr_dtor(&func);
+  //zval_ptr_dtor(&method);
+  efree(exec_params);
 }
 
 static const zend_function_entry jsonrpc_client_class_functions[] = {
   PHP_ME(jsonrpc_client, __construct, jsonrpc_client_construct_arginfo, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
   PHP_ME(jsonrpc_client, __destruct,  jsonrpc_client_destruct_arginfo,  ZEND_ACC_PUBLIC | ZEND_ACC_DTOR)
   PHP_ME(jsonrpc_client, connect,     jsonrpc_client_connect_arginfo,   ZEND_ACC_PUBLIC)
+  PHP_ME(jsonrpc_client, __call,      jsonrpc_client___call_arginfo,    ZEND_ACC_PUBLIC)
   PHP_ME(jsonrpc_client, call,        jsonrpc_client_call_arginfo,      ZEND_ACC_PUBLIC)
   PHP_ME(jsonrpc_client, execute,     jsonrpc_client_execute_arginfo,   ZEND_ACC_PUBLIC)
   {NULL, NULL, NULL}
@@ -1262,6 +1323,8 @@ jsonrpc_client_init(int module_number TSRMLS_DC)
   zend_declare_property_null(php_jsonrpc_client_entry, "request",  sizeof("request")-1,  ZEND_ACC_PUBLIC TSRMLS_CC);
   zend_declare_property_long(php_jsonrpc_client_entry, "response_total",  sizeof("response_total")-1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
   zend_declare_property_long(php_jsonrpc_client_entry, "coroutine_start", sizeof("coroutine_start")-1, 0 ,ZEND_ACC_PUBLIC TSRMLS_CC);
+  zend_declare_property_stringl(php_jsonrpc_client_entry, "request_url", sizeof("request_url")-1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+
 
   zend_class_entry jsonrpc_client_request_class_entry;
   INIT_CLASS_ENTRY(jsonrpc_client_request_class_entry, "Jsonrpc_Client_Request", NULL);
