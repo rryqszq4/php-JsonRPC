@@ -1274,7 +1274,7 @@ PHP_METHOD(jsonrpc_client, __call)
   request_url = zend_read_property(
       php_jsonrpc_client_entry, object, "request_url", sizeof("request_url")-1, 0 TSRMLS_CC
     );
-  jsr_dump_zval(request_url);
+  //jsr_dump_zval(request_url);
 
   MAKE_STD_ZVAL(method);
   ZVAL_STRINGL(method, method_s, method_len, 0);
