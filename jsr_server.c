@@ -540,9 +540,11 @@ getresponse:
     add_assoc_null(return_value, "id");
   }
 
-  ctr.line = "Content-Type: application/json";
-  ctr.line_len = strlen(ctr.line);
-  sapi_header_op(SAPI_HEADER_REPLACE, &ctr TSRMLS_CC);
+  if (strcmp(sapi_module.name,"cli") != 0){
+    ctr.line = "Content-Type: application/json";
+    ctr.line_len = strlen(ctr.line);
+    sapi_header_op(SAPI_HEADER_REPLACE, &ctr TSRMLS_CC);
+  }
 
   php_json_encode(&buf, return_value, 0 TSRMLS_CC);
   zval_dtor(return_value);
