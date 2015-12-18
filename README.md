@@ -43,7 +43,6 @@ Server
 - Jsonrpc_Server::executeprocedure(string $procedure, array $params)
 - Jsonrpc_Server::executecallback(object $closure, array $params)
 - Jsonrpc_Server::executemethod(string $class, string $method, array $params)
-- Jsonrpc_Server::getresponse(array $data, array $payload)
 - Jsonrpc_Server::execute()
 
 **Register Function**
