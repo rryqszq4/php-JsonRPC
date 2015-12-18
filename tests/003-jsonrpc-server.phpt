@@ -13,7 +13,6 @@ Check for jsonrpc presence
         });
 
 // Return the response to the client
-        echo $server->execute();
+        $server->execute();
 ?>
 --EXPECT--
-{"jsonrpc":"2.0","error":{"code":-32700,"message":"Parse error"},"id":null}
