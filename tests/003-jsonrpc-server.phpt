@@ -16,4 +16,4 @@ Check for jsonrpc presence
         echo $server->execute();
 ?>
 --EXPECT--
-{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}
+{"jsonrpc":"2.0","error":{"code":-32700,"message":"Parse error"},"id":null}
