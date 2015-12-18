@@ -154,7 +154,7 @@ jsr_curl_item_new(zval *object, char *url, size_t url_size, char *field, size_t 
     item->verbose = 0;
 
     item->slist = NULL;
-    item->slist = curl_slist_append(item->slist, "Content-Type: application/json"); 
+    //item->slist = curl_slist_append(item->slist, "Content-Type: application/json; charset=utf-8"); 
     item->slist = curl_slist_append(item->slist, "Accept: application/json"); 
 
     item->response_id = response_id;
@@ -214,9 +214,10 @@ jsr_curl_item_setopt(jsr_curl_item_t *self)
 
     //curl_easy_setopt(self->curl_handle, CURLOPT_READFUNCTION, self->read_callback);
     //curl_easy_setopt(self->curl_handle, CURLOPT_READDATA, self);
-
-    //curl_easy_setopt(self->curl_handle, CURLOPT_DEBUGFUNCTION, _jsr_curl_trace);
-    curl_easy_setopt(self->curl_handle, CURLOPT_VERBOSE, self->verbose);
+    if (self->verbose){
+      curl_easy_setopt(self->curl_handle, CURLOPT_DEBUGFUNCTION, _jsr_curl_trace);
+      curl_easy_setopt(self->curl_handle, CURLOPT_VERBOSE, self->verbose);
+    }
 
     //curl_easy_setopt(self->curl_handle, CURLOPT_WRITEDATA, self->fp);
 
