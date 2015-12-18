@@ -13,4 +13,4 @@ env:
 
 before_script: phpize && ./configure && make
 
-script: make test
+script: make test && cat tests/003-jsonrpc-server.log
