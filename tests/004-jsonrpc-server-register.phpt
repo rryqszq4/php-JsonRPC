@@ -12,25 +12,25 @@ Check for jsonrpc presence
 	);
 	$server = new Jsonrpc_Server(json_encode($payload));
 
-    /*
-    $server->register('addition', function ($a, $b) {
+    
+    /*$server->register('addition', function ($a, $b) {
         return $a + $b;
-    });
-    */
+    });*/
+    
 
-	/*
+	
 	$add = function ($a, $b){
 		return $a + $b;
 	};
     $server->register('addition', $add);
-    */
+    
 
-    /*
+    
     function add ($a, $b){
 		return $a + $b;
 	}
     $server->register('addition', 'add');
-    */
+    
 
     class A 
     {
