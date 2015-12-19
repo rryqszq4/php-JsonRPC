@@ -37,7 +37,6 @@
 #include "jsr_curl.h"
 #include "jsr_epoll.h"
 #include "jsr_utils.h"
-#include "coroutine.h"
 
 int le_jsr_epoll_persist;
 int le_jsr_curlm_persist;
@@ -193,55 +192,17 @@ _read_callback(void *ptr, size_t size, size_t nmemb, void *ctx)
   return 0;
 }
 
-static void
-_co_write(struct schedule *s, void *ctx)
-{
-  TSRMLS_FETCH();
-  
-  jsr_curl_item_t *item = (jsr_curl_item_t *) ctx;
-  zval *object = item->object;
-  zval *response, *response_total;;
-
-  response = zend_read_property(
-    php_jsonrpc_client_entry, object, "response", sizeof("response")-1, 0 TSRMLS_CC
-  );
-  response_total = zend_read_property(
-    php_jsonrpc_client_entry, object, "response_total", sizeof("response_total")-1, 0 TSRMLS_CC
-  );
-
-  int i;
-  for (i = item->co_start; i < (item->co_start + Z_LVAL_P(response_total)); i++){
-    if (i == (item->co_start + Z_LVAL_P(response_total) - 1)){
-      //php_printf("coroutine one %d : %d\n", coroutine_running(s), item->response_id);
-      add_index_stringl(response, item->response_id, item->write_data, item->write_length, 1);
-      zend_update_property(php_jsonrpc_client_entry, 
-        object, "response", sizeof("response")-1, response TSRMLS_CC
-        );
-      if (item->write_data){
-        free(item->write_data);
-        item->write_data = NULL;
-      }
-    }
-    coroutine_yield(s);
-  }
-}
-
 static size_t
 _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
 {
   TSRMLS_FETCH();
   
   jsr_curl_item_t * item = (jsr_curl_item_t *)ctx;
-  zval *object;
-  zval *response;
 
   zval *response_tmp;
   zval *error;
 
   char *buffer;
-  zval **response_data;
-  zval *response_total;
-
 
   CURLcode code;
   long response_code;
@@ -249,61 +210,18 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
   size_t length = size * nmemb;
   item->write_length = item->write_length + length;
 
-  object = item->object;
-  response = zend_read_property(
-    php_jsonrpc_client_entry, object, "response", sizeof("response")-1, 0 TSRMLS_CC
-  );
-  response_total = zend_read_property(
-    php_jsonrpc_client_entry, object, "response_total", sizeof("response_total")-1, 0 TSRMLS_CC
-  );
-
-
-
   code = curl_easy_getinfo(item->curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
-  /*if (PHP_JSONRPC_DEBUG){
-    php_printf("curl code : %d\n", code);
-    php_printf("response code : %d\n", response_code);
-    php_printf("response data : %s\n", ptr);
-    php_printf("response length : %d\n", length);
-    php_printf("response_id : %d\n", item->response_id);
-  }*/
 
   if (response_code == 200){
-    if (zend_hash_index_exists(Z_ARRVAL_P(response), item->response_id))
-    {
-      if (zend_hash_index_find(Z_ARRVAL_P(response), item->response_id, (void **)&response_data) == SUCCESS)
-      {
-        buffer = malloc(Z_STRLEN_PP(response_data) + length + 1);
-        strncpy(buffer, Z_STRVAL_PP(response_data), Z_STRLEN_PP(response_data)+1);
-        strncat(buffer, ptr, length);
-        add_index_stringl(response, item->response_id, buffer, Z_STRLEN_PP(response_data) + length, 1);
-        if (buffer){
-          free(buffer);
-          buffer = NULL;
-        }
-      }
+    if (!item->write_data){
+      item->write_data = malloc(item->write_length + 1);
+      memset(item->write_data, 0, item->write_length);
+      strncpy(item->write_data, ptr, item->write_length+1);
     }else {
-      if (!item->write_data){
-        item->write_data = malloc(item->write_length + 1);
-        memset(item->write_data, 0, item->write_length);
-        strncpy(item->write_data, ptr, item->write_length+1);
-        int co_id;
-        for (co_id = item->co_start; co_id < (item->co_start + Z_LVAL_P(response_total)); co_id++){
-          coroutine_resume(item->s, co_id);
-        }
-      }else {
-        item->write_data = realloc(item->write_data, item->write_length + 1);
-        strncat(item->write_data, ptr, length);
-      }
+      item->write_data = realloc(item->write_data, item->write_length + 1);
+      strncat(item->write_data, ptr, length);
     }
-
-    /*zend_update_property(php_jsonrpc_client_entry, 
-        object, "response", sizeof("response")-1, response TSRMLS_CC
-        );
-    */
-    
     return length;
-
   }
 
   switch (response_code)
@@ -495,11 +413,6 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
   smart_str_free(&buf);
   zval_ptr_dtor(&response_tmp);
 
-  int co_id;
-  for (co_id = 0; co_id < Z_LVAL_P(response_total); co_id++){
-    coroutine_resume(item->s, co_id);
-  }
-
   return length;
 }
 
@@ -539,14 +452,6 @@ _php_jsr_response_error(long code, char *message, jsr_payload_id *payload_id)
 static void
 _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
 {
-  /*int fd;
-  int ress;
-  char *path = "test.txt";
-  fd = open(path, O_CREAT | O_RDWR | O_APPEND, 0666);
-
-  char buf[2+1] = "\n";
-  char s[100+1];
-*/
 
   php_jsr_reuqest_object *jsr_request = (php_jsr_reuqest_object *) object;
 
@@ -557,27 +462,6 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
   jsr_curl_item_t *item;
   size_t size;
 
-  /*
-  CURLMsg *msg;
-  int msgs_left;
-  CURL *easy;
-  CURLcode error_code;
-  while ((msg = curl_multi_info_read(jsr_request->curlm->multi_handle, &msgs_left)))
-  {
-    if (msg->msg == CURLMSG_DONE){
-      easy = msg->easy_handle;
-      error_code = msg->data.result;
-
-      //php_printf("error_code : %d\n", error_code);
-
-      curl_easy_getinfo(easy, CURLINFO_PRIVATE, &item);
-
-      curl_multi_remove_handle(jsr_request->curlm->multi_handle, easy);
-      curl_easy_cleanup(easy);
-      curl_slist_free_all(item->slist);
-
-    }
-  }*/
 
   while ((size = jsr_list_size(jsr_request->curlm->list)) > 0){
     item = jsr_list_pop(jsr_request->curlm->list);
@@ -602,11 +486,6 @@ _php_jsr_request_object_free_storage(void *object TSRMLS_DC)
 
   efree(jsr_request);
 
-  //ress = fsync(fd);
-
-  //close(fd);
-
-  //php_printf("jsr_request_destroy\n");
 }
 
 static zend_object_value
@@ -807,7 +686,6 @@ ZEND_RSRC_DTOR_FUNC(_php_jsr_curlm_dtor)
 PHP_METHOD(jsonrpc_client, __construct)
 {
   zval *object;
-  zval *response;
   zval *request_obj;
 
   zend_bool persist = 0;
@@ -838,7 +716,6 @@ PHP_METHOD(jsonrpc_client, __construct)
 
   request->context = context;
   request->curlm = conn->curlm;
-  request->curlm->s = coroutine_open();
   request->is_persistent = persist;
 
 
@@ -851,21 +728,9 @@ PHP_METHOD(jsonrpc_client, __construct)
       object, "request", sizeof("request")-1, request_obj TSRMLS_CC
     );
   zval_ptr_dtor(&request_obj);
-  
-
-  MAKE_STD_ZVAL(response);
-  array_init(response);
-  zend_update_property(php_jsonrpc_client_entry, 
-      object, "response", sizeof("response")-1, response TSRMLS_CC
-    );
-  zval_ptr_dtor(&response);
 
   zend_update_property_long(php_jsonrpc_client_entry,
       object, "response_total", sizeof("response_total")-1, 0 TSRMLS_CC
-    );
-
-  zend_update_property_long(php_jsonrpc_client_entry,
-      object, "coroutine_start", sizeof("coroutine_start")-1, 0 TSRMLS_CC
     );
   
 }
@@ -878,14 +743,6 @@ PHP_METHOD(jsonrpc_client, __destruct)
   zval *request_obj;
 
   object = getThis();
-
-  request_obj = zend_read_property(
-      php_jsonrpc_client_entry, object, "request", sizeof("request")-1, 0 TSRMLS_CC
-    );
-
-  request = (php_jsr_reuqest_object *)zend_object_store_get_object(request_obj TSRMLS_CC);
-
-  coroutine_close(request->curlm->s);
 
 }
 
@@ -926,10 +783,6 @@ PHP_METHOD(jsonrpc_client, call)
 
   response_total = zend_read_property(
       php_jsonrpc_client_entry, object, "response_total", sizeof("response_total")-1, 0 TSRMLS_CC
-    );
-
-  coroutine_start = zend_read_property(
-      php_jsonrpc_client_entry, object, "coroutine_start", sizeof("coroutine_start")-1, 0 TSRMLS_CC
     );
 
   request = (php_jsr_reuqest_object *)zend_object_store_get_object(request_obj TSRMLS_CC);
@@ -973,7 +826,6 @@ PHP_METHOD(jsonrpc_client, call)
   convert_to_string_ex(&payload);
 
   jsr_curl_item = jsr_curl_item_new(
-      object,
       url,
       url_len,
       Z_STRVAL_P(payload),
@@ -983,11 +835,6 @@ PHP_METHOD(jsonrpc_client, call)
     );
 
   zval_ptr_dtor(&payload);
-
-  jsr_curl_item->s = request->curlm->s;
-  jsr_curl_item->co = coroutine_new(jsr_curl_item->s, _co_write, jsr_curl_item);
-  //php_printf("co: %d\n", jsr_curl_item->co);
-  jsr_curl_item->co_start = Z_LVAL_P(coroutine_start);
 
   //jsr_curl_item->read_callback = _read_callback;
   jsr_curl_item->write_callback = _write_callback;
@@ -1009,8 +856,6 @@ PHP_METHOD(jsonrpc_client, execute)
   zval *params;
   zval *payload;
   zval *response;
-  zval *response_total;
-  zval *coroutine_start;
 
   php_jsr_reuqest_object *request;
 
@@ -1029,22 +874,8 @@ PHP_METHOD(jsonrpc_client, execute)
   request = (php_jsr_reuqest_object *)zend_object_store_get_object(request_obj TSRMLS_CC);
   request->executed = 1;
 
-  response = zend_read_property(
-    php_jsonrpc_client_entry, object, "response", sizeof("response")-1, 0 TSRMLS_CC
-  );
+  MAKE_STD_ZVAL(response);
   array_init(response);
-  zend_update_property(php_jsonrpc_client_entry, 
-      object, "response", sizeof("response")-1, response TSRMLS_CC
-    );
-
-
-  response_total = zend_read_property(
-    php_jsonrpc_client_entry, object, "response_total", sizeof("response_total")-1, 0 TSRMLS_CC
-  );
-  coroutine_start = zend_read_property(
-      php_jsonrpc_client_entry, object, "coroutine_start", sizeof("coroutine_start")-1, 0 TSRMLS_CC
-    );
-
 
   request->curlm->running_handles = 1;
   request->context->epoll->loop_total = 0;
@@ -1170,22 +1001,22 @@ PHP_METHOD(jsonrpc_client, execute)
             response_tmp = _php_jsr_response_error(-32099, "Curl Error Unknow", &item->payload_id);
             break;
         }
-        //add_index_zval(response, item->response_id, response_tmp);
-        smart_str buf = {0};
-        php_json_encode(&buf, response_tmp, 0 TSRMLS_CC);
+        
+        add_index_zval(response, item->response_id, response_tmp);
+        //zval_ptr_dtor(&response_tmp);
 
-        item->write_length = buf.len;
-        item->write_data = malloc(item->write_length + 1);
-        memset(item->write_data, 0, item->write_length);
-        strncpy(item->write_data, buf.c, item->write_length+1);
+      }
 
-        smart_str_free(&buf);
-        zval_ptr_dtor(&response_tmp);
-
-        int co_id;
-        for (co_id = item->co_start; co_id < (item->co_start + Z_LVAL_P(response_total)); co_id++){
-          coroutine_resume(item->s, co_id);
-        }
+      if (item->write_data){
+        zval *tmp;
+        MAKE_STD_ZVAL(tmp);
+        //array_init(tmp);
+        //php_printf("%s\n", item->write_data);
+        php_json_decode(tmp, item->write_data, item->write_length, 1, 512 TSRMLS_CC);
+        add_index_zval(response, item->response_id, tmp);
+        //zval_ptr_dtor(&tmp);
+        free(item->write_data);
+        item->write_data = NULL;
       }
 
       curl_multi_remove_handle(request->curlm->multi_handle, easy);
@@ -1195,39 +1026,8 @@ PHP_METHOD(jsonrpc_client, execute)
   }
 
 
-/*#####################*/
-
-  zval **current;
-  ulong hash_index = 0;
-  char *hash_key = NULL;
-
-  for (zend_hash_internal_pointer_reset(Z_ARRVAL_P(response));
-     zend_hash_get_current_data(Z_ARRVAL_P(response), (void **) &current) == SUCCESS;
-     zend_hash_move_forward(Z_ARRVAL_P(response))
-  ){
-    zend_hash_get_current_key(Z_ARRVAL_P(response), &hash_key, &hash_index, 0);
-    SEPARATE_ZVAL(current);
-    //php_printf("key: %s, index: %d", hash_key, hash_index);
-    if (Z_TYPE_PP(current) == IS_STRING){
-      zval *tmp;
-      MAKE_STD_ZVAL(tmp);
-      array_init(tmp);
-      //php_printf("data=> %d, %s\n", i, Z_STRVAL_PP(current));
-      php_json_decode(tmp, Z_STRVAL_PP(current), Z_STRLEN_PP(current), 1, 512 TSRMLS_CC);
-      add_index_zval(response, hash_index, tmp);
-    }
-
-  }
-
-  zend_update_property_long(php_jsonrpc_client_entry,
-      object, "coroutine_start", sizeof("coroutine_start")-1, Z_LVAL_P(response_total) TSRMLS_CC
-    );
-
-  zend_update_property_long(php_jsonrpc_client_entry, 
-    object, "response_total", sizeof("response_total")-1, 0 TSRMLS_CC
-  );
-
   RETVAL_ZVAL(response, 1, 0);
+  zval_dtor(response);
 
 }
 
@@ -1320,10 +1120,9 @@ jsonrpc_client_init(int module_number TSRMLS_DC)
   zend_class_entry jsonrpc_client_class_entry;
   INIT_CLASS_ENTRY(jsonrpc_client_class_entry, "Jsonrpc_Client", jsonrpc_client_class_functions);
   php_jsonrpc_client_entry = zend_register_internal_class(&jsonrpc_client_class_entry TSRMLS_CC);
-  zend_declare_property_null(php_jsonrpc_client_entry, "response", sizeof("response")-1, ZEND_ACC_PUBLIC TSRMLS_CC);
+  //zend_declare_property_null(php_jsonrpc_client_entry, "response", sizeof("response")-1, ZEND_ACC_PUBLIC TSRMLS_CC);
   zend_declare_property_null(php_jsonrpc_client_entry, "request",  sizeof("request")-1,  ZEND_ACC_PUBLIC TSRMLS_CC);
   zend_declare_property_long(php_jsonrpc_client_entry, "response_total",  sizeof("response_total")-1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
-  zend_declare_property_long(php_jsonrpc_client_entry, "coroutine_start", sizeof("coroutine_start")-1, 0 ,ZEND_ACC_PUBLIC TSRMLS_CC);
   zend_declare_property_stringl(php_jsonrpc_client_entry, "request_url", sizeof("request_url")-1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
 
 
