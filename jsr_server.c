@@ -516,11 +516,11 @@ PHP_METHOD(jsonrpc_server, execute)
 getresponse:
   
   if (Z_TYPE_P(payload) != IS_NULL){
-    /*if (!zend_symtable_exists(Z_ARRVAL_P(payload), "id", strlen("id")+1))
+    if (!zend_symtable_exists(Z_ARRVAL_P(payload), "id", strlen("id")+1))
     {
     }else {
       
-      if (zend_hash_find(Z_ARRVAL_P(payload), "id", strlen("id")+1, (void **)&id ) == FAILURE)
+      /*if (zend_hash_find(Z_ARRVAL_P(payload), "id", strlen("id")+1, (void **)&id ) == FAILURE)
       {
         //php_error_docref(NULL TSRMLS_CC, E_WARNING, "closeure is not expected to be a valid callback");
         //return ;
@@ -534,9 +534,8 @@ getresponse:
       }else if (Z_TYPE_PP(id) == IS_LONG){
         convert_to_long(*id);
         add_assoc_long(return_value, "id", Z_LVAL_PP(id));
-      }
-    }*/
-    add_assoc_null(return_value, "id");
+      }*/
+    }
   }else {
     add_assoc_null(return_value, "id");
   }
