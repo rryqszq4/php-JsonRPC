@@ -8,6 +8,6 @@ Check for jsonrpc presence
     $client->call('http://www.baidu.com', "addition", array(3,5), "id_001");
     $client->call('http://www.baidu.com', "addition", array(3,5), "id_002");
     $client->call('http://www.baidu.com', "addition", array(3,5), "id_003");
-    //$client->execute();
+    $client->execute();
 ?>
 --EXPECT--
