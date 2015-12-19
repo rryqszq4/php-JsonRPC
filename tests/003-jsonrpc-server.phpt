@@ -14,5 +14,6 @@ Check for jsonrpc presence
 
 // Return the response to the client
         //$server->execute();
+        $server->jsonformat();
 ?>
 --EXPECT--
