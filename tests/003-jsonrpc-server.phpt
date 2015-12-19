@@ -8,12 +8,12 @@ Check for jsonrpc presence
 
 // Procedures registration
 
-        /*$server->register('addition', function ($a, $b) {
+        $server->register('addition', function ($a, $b) {
             return $a + $b;
-        });*/
+        });
 
 // Return the response to the client
-        //$server->execute();
-        $server->jsonformat();
+        $server->execute();
+
 ?>
 --EXPECT--

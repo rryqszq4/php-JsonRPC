@@ -547,10 +547,10 @@ getresponse:
   }
 
   php_json_encode(&buf, return_value, 0 TSRMLS_CC);
-  zval_dtor(return_value);
-  zval_dtor(error);
+  //zval_dtor(return_value);
+  //zval_dtor(error);
 
-  ZVAL_STRINGL(return_value, buf.c, buf.len, 1);
+  //ZVAL_STRINGL(return_value, buf.c, buf.len, 1);
   smart_str_free(&buf);
 
   return ;
