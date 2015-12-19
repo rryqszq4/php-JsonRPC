@@ -516,7 +516,7 @@ PHP_METHOD(jsonrpc_server, execute)
 getresponse:
   
   if (Z_TYPE_P(payload) != IS_NULL){
-    if (!zend_symtable_exists(Z_ARRVAL_P(payload), "id", strlen("id")+1))
+    /*if (!zend_symtable_exists(Z_ARRVAL_P(payload), "id", strlen("id")+1))
     {
     }else {
       
@@ -535,16 +535,16 @@ getresponse:
         convert_to_long(*id);
         add_assoc_long(return_value, "id", Z_LVAL_PP(id));
       }
-    }
+    }*/
+    add_assoc_null(return_value, "id");
   }else {
     add_assoc_null(return_value, "id");
   }
   
-  
+
   ctr.line = "Content-Type: application/json";
   ctr.line_len = strlen(ctr.line);
   sapi_header_op(SAPI_HEADER_REPLACE, &ctr TSRMLS_CC);
-
 
   php_json_encode(&buf, return_value, 0 TSRMLS_CC);
   zval_dtor(return_value);
