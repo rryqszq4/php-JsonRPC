@@ -43,7 +43,7 @@ Server
 - Jsonrpc_Server::executeprocedure(string $procedure, array $params)
 - Jsonrpc_Server::executecallback(object $closure, array $params)
 - Jsonrpc_Server::executemethod(string $class, string $method, array $params)
-- Jsonrpc_Server::execute()
+- Jsonrpc_Server::execute(boolean $response_type)
 
 **Register Function**
 ```php
@@ -154,7 +154,7 @@ Client
 - Jsonrpc_Client::call(string $url, string $procedure, array $params, mixed $id)
 - Jsonrpc_Client::connect(string $url);
 - Jsonrpc_Client::__call(string $procedure, array $params);
-- Jsonrpc_Client::execute()
+- Jsonrpc_Client::execute(boolean $response_type)
 - Jsonrpc_Client::__destruct()
 
 **Persistent**
