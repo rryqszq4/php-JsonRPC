@@ -57,6 +57,7 @@ ZEND_BEGIN_ARG_INFO_EX(jsonrpc_client_call_arginfo, 0, 0, 3)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(jsonrpc_client_execute_arginfo, 0, 0, 0)
+  ZEND_ARG_INFO(0, response_type)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(jsonrpc_client_connect_arginfo, 0, 0, 1)
@@ -865,8 +866,15 @@ PHP_METHOD(jsonrpc_client, execute)
 
   zval *request_obj;
 
+  zend_bool response_type=0;
+
   object = getThis();
 
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|b",
+    &response_type) == FAILURE)
+  {
+    return ;
+  }
 
   request_obj = zend_read_property(
         php_jsonrpc_client_entry, object, "request", sizeof("request")-1, 0 TSRMLS_CC
@@ -1002,19 +1010,31 @@ PHP_METHOD(jsonrpc_client, execute)
             break;
         }
         
-        add_index_zval(response, item->response_id, response_tmp);
+        if (!response_type){
+          add_index_zval(response, item->response_id, response_tmp);
+        }else {
+          smart_str buf = {0};
+          php_json_encode(&buf, response_tmp, 0 TSRMLS_CC);
+          add_index_stringl(response, item->response_id, buf.c, buf.len, 1);
+          zval_dtor(response_tmp);
+        }
         //zval_ptr_dtor(&response_tmp);
 
       }
 
       if (item->write_data){
-        zval *tmp;
-        MAKE_STD_ZVAL(tmp);
-        //array_init(tmp);
-        //php_printf("%s\n", item->write_data);
-        php_json_decode(tmp, item->write_data, item->write_length, 1, 512 TSRMLS_CC);
-        add_index_zval(response, item->response_id, tmp);
-        //zval_ptr_dtor(&tmp);
+        if (!response_type){
+          zval *tmp;
+          MAKE_STD_ZVAL(tmp);
+          //array_init(tmp);
+          //php_printf("%s\n", item->write_data);
+          php_json_decode(tmp, item->write_data, item->write_length, 1, 512 TSRMLS_CC);
+          add_index_zval(response, item->response_id, tmp);
+          //zval_ptr_dtor(&tmp);
+        }else {
+          add_index_stringl(response, item->response_id, item->write_data, item->write_length, 1);
+        }
+        
         free(item->write_data);
         item->write_data = NULL;
       }

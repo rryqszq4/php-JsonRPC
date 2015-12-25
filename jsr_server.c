@@ -57,6 +57,7 @@ ZEND_BEGIN_ARG_INFO_EX(jsonrpc_server_bind_arginfo, 0, 0, 3)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(jsonrpc_server_execute_arginfo, 0, 0, 0)
+  ZEND_ARG_INFO(0, response_type)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(jsonrpc_server_jsonformat_arginfo, 0, 0, 0)
@@ -393,7 +394,15 @@ PHP_METHOD(jsonrpc_server, execute)
   sapi_header_line ctr = {0};
   smart_str buf = {0};
 
+  zend_bool response_type = 0; // type:0 =>json type:1 => array
+
   object = getThis();
+
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|b",
+    &response_type) == FAILURE)
+  {
+    return ;
+  }
   
   payload = zend_read_property(
       php_jsonrpc_server_entry, getThis(), "payload", sizeof("payload")-1, 0 TSRMLS_CC
@@ -545,12 +554,14 @@ getresponse:
   ctr.line_len = strlen(ctr.line);
   sapi_header_op(SAPI_HEADER_REPLACE, &ctr TSRMLS_CC);
 
-  php_json_encode(&buf, return_value, 0 TSRMLS_CC);
-  zval_dtor(return_value);
-  zval_dtor(error);
+  if (!response_type){
+    php_json_encode(&buf, return_value, 0 TSRMLS_CC);
+    zval_dtor(return_value);
+    zval_dtor(error);
 
-  ZVAL_STRINGL(return_value, buf.c, buf.len, 1);
-  smart_str_free(&buf);
+    ZVAL_STRINGL(return_value, buf.c, buf.len, 1);
+    smart_str_free(&buf);
+  }
 
   return ;
 
