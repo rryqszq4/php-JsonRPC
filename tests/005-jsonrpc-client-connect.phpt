@@ -6,7 +6,7 @@ Check for jsonrpc presence
 <?php 
 	$client = new Jsonrpc_Client(1);
 
-	$client->connect('http://www.baidu.com');
+	$client->connect('https://github.com/rryqszq4/404');
     $client->addition(3,5);
     $client->addition1(3,5);
     $result = $client->execute();
@@ -14,7 +14,7 @@ Check for jsonrpc presence
     echo "error_code:".$result[0]["error"]["code"]."\n";
     echo "error_code:".$result[1]["error"]["code"]."\n";
 
-    $client->connect('http://www.baidu.com');
+    $client->connect('https://github.com/rryqszq4/404');
     $client->addition(3,5);
     $client->addition1(3,5);
     $result = $client->execute();
@@ -24,8 +24,8 @@ Check for jsonrpc presence
 ?>
 --EXPECT--
 response_total:2
-error_code:-32302
-error_code:-32302
+error_code:-32404
+error_code:-32404
 response_total:4
-error_code:-32302
-error_code:-32302
+error_code:-32404
+error_code:-32404
