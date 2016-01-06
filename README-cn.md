@@ -14,7 +14,7 @@ JsonRPC 2.0 Client and Server
 * 并发curl与epoll结合的并行客户端
 * php-fpm中持久化epoll
 * php-fpm中持久化curl_multi队列
-* 底层使用协程
+* 默认使用YAJL解析JSON
 * 服务端支持请求与通知
 * Linux系统(需要支持epoll)
 

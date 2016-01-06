@@ -13,8 +13,8 @@ Features
 * Base on curl and epoll of the multi client
 * Persistent epoll in php-fpm
 * Persistent curl_multi queue in php-fpm
-* Coroutine in async
-* Support message and notifi notification
+* Default use JSON parse/generate library YAJL
+* Support message and notification
 * Linux only(need to epoll)
 
 Requirement
