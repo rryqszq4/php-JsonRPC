@@ -1044,7 +1044,7 @@ PHP_METHOD(jsonrpc_client, execute)
           zval *tmp;
           MAKE_STD_ZVAL(tmp);
 
-          ZVAL_STRINGL(tmp, item->write_data, item->write_length, 1);
+          ZVAL_STRINGL(tmp, item->write_data, item->write_length, 0);
           func_params = emalloc(sizeof(zval *) * 1);
           func_params[0] = tmp;
 
@@ -1085,6 +1085,7 @@ PHP_METHOD(jsonrpc_client, execute)
 
   RETVAL_ZVAL(response, 1, 0);
   zval_dtor(response);
+  efree(func);
 
 }
 
@@ -1152,6 +1153,7 @@ PHP_METHOD(jsonrpc_client, __call)
 
   //zval_ptr_dtor(&func);
   //zval_ptr_dtor(&method);
+  efree(method);
   efree(exec_params);
 }
 

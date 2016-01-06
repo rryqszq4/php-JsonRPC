@@ -138,7 +138,7 @@ static zval* _jsr_file_get_contents()
     php_stream_close(stream);
     return payload;
   } else if (len == 0) {
-    ZVAL_STRING(payload, "", 1);
+    ZVAL_STRING(payload, "", 0);
     php_stream_close(stream);
     return payload;
   } else {
@@ -582,6 +582,8 @@ getresponse:
 
   }
 
+  efree(func);
+
   return ;
 
 }
@@ -766,7 +768,7 @@ PHP_METHOD(jsonrpc_server, executeprocedure)
       return ;
     }
     MAKE_STD_ZVAL(func);
-    ZVAL_STRINGL(func, "executecallback", sizeof("executecallback") - 1, 1);
+    ZVAL_STRINGL(func, "executecallback", sizeof("executecallback") - 1, 0);
     func_params = emalloc(sizeof(zval *) * 2);
     //jsr_dump_zval(*procedure_params);
     func_params[0] = *procedure_params;
@@ -797,7 +799,7 @@ PHP_METHOD(jsonrpc_server, executeprocedure)
       return ;
     }
     MAKE_STD_ZVAL(func);
-    ZVAL_STRINGL(func, "executemethod", sizeof("executemethod") - 1, 1);
+    ZVAL_STRINGL(func, "executemethod", sizeof("executemethod") - 1, 0);
     func_params = emalloc(sizeof(zval *) * 3);
     //jsr_dump_zval(*procedure_params);
     zval **class, **method;
