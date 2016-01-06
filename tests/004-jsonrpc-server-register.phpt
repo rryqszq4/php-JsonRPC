@@ -44,4 +44,8 @@ Check for jsonrpc presence
     echo $server->execute();
 ?>
 --EXPECT--
-{"jsonrpc":"2.0","result":5,"id":123456}
+{
+    "jsonrpc": "2.0",
+    "result": 5,
+    "id": 123456
+}

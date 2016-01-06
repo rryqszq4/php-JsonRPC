@@ -17,4 +17,11 @@ Check for jsonrpc presence
 
 ?>
 --EXPECT--
-{"jsonrpc":"2.0","error":{"code":-32700,"message":"Parse error"},"id":null}
+{
+    "jsonrpc": "2.0",
+    "error": {
+        "code": -32700,
+        "message": "Parse error"
+    },
+    "id": null
+}
