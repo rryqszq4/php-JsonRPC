@@ -62,6 +62,17 @@ if test "$PHP_JSONRPC" != "no"; then
   dnl
   dnl PHP_SUBST(JSONRPC_SHARED_LIBADD)
 
+  YAJL_SOURCES="\
+    yajl/yajl_version.c \
+    yajl/yajl.c \
+    yajl/yajl_encode.c \
+    yajl/yajl_lex.c \
+    yajl/yajl_parser.c \
+    yajl/yajl_buf.c \
+    yajl/yajl_tree.c \
+    yajl/yajl_alloc.c \
+    yajl/yajl_gen.c"
+
   if test -r $PHP_CURL/include/curl/easy.h; then
     CURL_DIR=$PHP_CURL
   else
@@ -85,5 +96,5 @@ if test "$PHP_JSONRPC" != "no"; then
   PHP_EVAL_LIBLINE($CURL_LIBS, YAR_SHARED_LIBADD)
   PHP_ADD_LIBRARY_WITH_PATH(curl, $CURL_DIR/$PHP_LIBDIR, YAR_SHARED_LIBADD)
 
-  PHP_NEW_EXTENSION(jsonrpc, jsonrpc.c jsr_server.c jsr_client.c jsr_curl.c jsr_list.c jsr_epoll.c jsr_utils.c, $ext_shared)
+  PHP_NEW_EXTENSION(jsonrpc, jsonrpc.c jsr_server.c jsr_client.c jsr_curl.c jsr_list.c jsr_epoll.c jsr_utils.c $YAJL_SOURCES jsr_yajl.c, $ext_shared)
 fi
