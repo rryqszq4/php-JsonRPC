@@ -575,7 +575,7 @@ getresponse:
       return ;
     }
 
-    ZVAL_STRINGL(return_value, Z_STRVAL_P(return_value), Z_STRLEN_P(return_value), 1);
+    //ZVAL_STRINGL(return_value, Z_STRVAL_P(return_value), Z_STRLEN_P(return_value), 1);
 
     zval_dtor(error);
     efree(exec_params);
@@ -625,7 +625,21 @@ PHP_METHOD(jsonrpc_server, jsonformat)
     zend_update_property(php_jsonrpc_server_entry, object, "payload", sizeof(payload)-1, payload TSRMLS_CC);
   }
   if (Z_TYPE_P(payload) == IS_STRING){
-    php_json_decode(payload, Z_STRVAL_P(payload), Z_STRLEN_P(payload), 1, 512 TSRMLS_CC);
+    zval *func;
+    zval **func_params;
+    MAKE_STD_ZVAL(func);
+    func_params = emalloc(sizeof(zval *) * 1);
+    func_params[0] = payload;
+
+    ZVAL_STRINGL(func, "Jsonrpc_Yajl::parse", sizeof("Jsonrpc_Yajl::parse") - 1, 0);
+    if (call_user_function(EG(function_table), NULL, func, payload, 1, func_params TSRMLS_CC) == FAILURE)
+    {
+      php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed calling Jsonrpc_Yajl::parse()");
+      return ;
+    }
+
+    efree(func_params);
+    //php_json_decode(payload, Z_STRVAL_P(payload), Z_STRLEN_P(payload), 1, 512 TSRMLS_CC);
   }
   if (Z_TYPE_P(payload) != IS_ARRAY){
     RETVAL_FALSE;

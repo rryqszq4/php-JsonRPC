@@ -817,11 +817,25 @@ PHP_METHOD(jsonrpc_client, call)
     add_assoc_zval(payload, "params", params);
   }
 
+  zval *func;
+  zval **exec_params;
+  MAKE_STD_ZVAL(func);
+  exec_params = emalloc(sizeof(zval *) * 1);
+  exec_params[0] = payload;
 
-  smart_str buf = {0};
+  ZVAL_STRINGL(func, "Jsonrpc_Yajl::generate", sizeof("Jsonrpc_Yajl::generate") - 1, 0);
+  if (call_user_function(EG(function_table), NULL, func, payload, 1, exec_params TSRMLS_CC) == FAILURE)
+  {
+    php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed calling Jsonrpc_Yajl::generate()");
+    return ;
+  }
+
+  efree(exec_params);
+
+  /*smart_str buf = {0};
   php_json_encode(&buf, payload, 0 TSRMLS_CC);
   ZVAL_STRINGL(payload, buf.c, buf.len, 1);
-  smart_str_free(&buf);
+  smart_str_free(&buf);*/
 
   //jsr_dump_zval(payload);
 
@@ -1056,8 +1070,10 @@ PHP_METHOD(jsonrpc_client, execute)
           add_index_stringl(response, item->response_id, item->write_data, item->write_length, 1);
         }
         
-        free(item->write_data);
-        item->write_data = NULL;
+        if (item->write_data){
+          free(item->write_data);
+          item->write_data = NULL;
+        }
       }
 
       curl_multi_remove_handle(request->curlm->multi_handle, easy);
