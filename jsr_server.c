@@ -35,6 +35,7 @@
 
 #include "jsr_server.h"
 #include "jsr_utils.h"
+#include "jsr_yajl.h"
 
 
 /** {{{ ARG_INFO
@@ -554,13 +555,31 @@ getresponse:
   ctr.line_len = strlen(ctr.line);
   sapi_header_op(SAPI_HEADER_REPLACE, &ctr TSRMLS_CC);
 
-  if (!response_type){
+  /*if (!response_type){
     php_json_encode(&buf, return_value, 0 TSRMLS_CC);
     zval_dtor(return_value);
     zval_dtor(error);
 
     ZVAL_STRINGL(return_value, buf.c, buf.len, 1);
     smart_str_free(&buf);
+  }*/
+
+  if (!response_type){
+    exec_params = emalloc(sizeof(zval *) * 1);
+    exec_params[0] = return_value;
+
+    ZVAL_STRINGL(func, "Jsonrpc_Yajl::generate", sizeof("Jsonrpc_Yajl::generate") - 1, 0);
+    if (call_user_function(EG(function_table), NULL, func, return_value, 1, exec_params TSRMLS_CC) == FAILURE)
+    {
+      php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed calling Jsonrpc_Yajl::generate()");
+      return ;
+    }
+
+    ZVAL_STRINGL(return_value, Z_STRVAL_P(return_value), Z_STRLEN_P(return_value), 1);
+
+    zval_dtor(error);
+    efree(exec_params);
+
   }
 
   return ;
@@ -959,7 +978,7 @@ PHP_METHOD(jsonrpc_server, getresponse)
   ctr.line_len = strlen(ctr.line);
   sapi_header_op(SAPI_HEADER_REPLACE, &ctr TSRMLS_CC);
 
-  php_json_encode(&buf, return_value, 0 TSRMLS_CC);
+  //php_json_encode(&buf, return_value, 0 TSRMLS_CC);
   //zval_ptr_dtor(&response);
   ZVAL_STRINGL(return_value, buf.c, buf.len, 1);
   smart_str_free(&buf);

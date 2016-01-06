@@ -37,6 +37,7 @@
 #include "jsr_curl.h"
 #include "jsr_epoll.h"
 #include "jsr_utils.h"
+#include "jsr_yajl.h"
 
 int le_jsr_epoll_persist;
 int le_jsr_curlm_persist;
@@ -876,6 +877,8 @@ PHP_METHOD(jsonrpc_client, execute)
     return ;
   }
 
+  MAKE_STD_ZVAL(func);
+
   request_obj = zend_read_property(
         php_jsonrpc_client_entry, object, "request", sizeof("request")-1, 0 TSRMLS_CC
       );
@@ -1026,11 +1029,29 @@ PHP_METHOD(jsonrpc_client, execute)
         if (!response_type){
           zval *tmp;
           MAKE_STD_ZVAL(tmp);
+
+          ZVAL_STRINGL(tmp, item->write_data, item->write_length, 1);
+          func_params = emalloc(sizeof(zval *) * 1);
+          func_params[0] = tmp;
+
+          ZVAL_STRINGL(func, "Jsonrpc_Yajl::parse", sizeof("Jsonrpc_Yajl::parse") - 1, 0);
+          if (call_user_function(EG(function_table), NULL, func, tmp, 1, func_params TSRMLS_CC) == FAILURE)
+          {
+            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed calling Jsonrpc_Yajl::parse()");
+            return ;
+          }
+
+          add_index_zval(response, item->response_id, tmp);
+
+          efree(func_params);
+
+          /*zval *tmp;
+          MAKE_STD_ZVAL(tmp);
           //array_init(tmp);
           //php_printf("%s\n", item->write_data);
           php_json_decode(tmp, item->write_data, item->write_length, 1, 512 TSRMLS_CC);
           add_index_zval(response, item->response_id, tmp);
-          //zval_ptr_dtor(&tmp);
+          //zval_ptr_dtor(&tmp);*/
         }else {
           add_index_stringl(response, item->response_id, item->write_data, item->write_length, 1);
         }
