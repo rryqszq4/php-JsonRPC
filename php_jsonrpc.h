@@ -24,7 +24,7 @@
 #include "php.h"
 //#include "ext/standard/php_smart_str.h"
 
-#define PHP_JSONRPC_VERSION "0.0.8"
+#define PHP_JSONRPC_VERSION "0.0.9"
 
 #define PHP_JSONRPC_DEBUG   0
 
