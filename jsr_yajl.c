@@ -484,7 +484,7 @@ static void php_yajl_rsrc_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC)
     php_yajl_t *yajl = (php_yajl_t *)rsrc->ptr;
 
     if (yajl->gen){
-      yajl_gen_clear(yajl->gen);
+      //yajl_gen_clear(yajl->gen);
       yajl_gen_free(yajl->gen);
   }
 
@@ -573,7 +573,9 @@ PHP_METHOD(jsonrpc_yajl, generate)
 
   ZVAL_STRINGL(return_value, buf, len, 1);
 
-    return;
+  yajl_gen_clear(yajl->gen);
+
+  return;
 
 }
 
