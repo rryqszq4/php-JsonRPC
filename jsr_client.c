@@ -403,16 +403,34 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
         break;
   }
 
+  zval *func;
+  zval **exec_params;
+  MAKE_STD_ZVAL(func);
+  exec_params = emalloc(sizeof(zval *) * 1);
+  exec_params[0] = response_tmp;
 
-  smart_str buf = {0};
-  php_json_encode(&buf, response_tmp, 0 TSRMLS_CC);
+  ZVAL_STRINGL(func, "Jsonrpc_Yajl::generate", sizeof("Jsonrpc_Yajl::generate") - 1, 0);
+  if (call_user_function(EG(function_table), NULL, func, response_tmp, 1, exec_params TSRMLS_CC) == FAILURE)
+  {
+    php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed calling Jsonrpc_Yajl::generate()");
+    return ;
+  }
 
-  item->write_length = buf.len;
+  efree(exec_params);
+  efree(func);
+
+  item->write_length = Z_STRLEN_P(response_tmp);
+
+  //smart_str buf = {0};
+  //php_json_encode(&buf, response_tmp, 0 TSRMLS_CC);
+
+  //item->write_length = buf.len;
   item->write_data = malloc(item->write_length + 1);
   memset(item->write_data, 0, item->write_length);
-  strncpy(item->write_data, buf.c, item->write_length+1);
+  //strncpy(item->write_data, buf.c, item->write_length+1);
+  strncpy(item->write_data, Z_STRVAL_P(response_tmp), item->write_length+1);
 
-  smart_str_free(&buf);
+  //smart_str_free(&buf);
   zval_ptr_dtor(&response_tmp);
 
   return length;
@@ -831,6 +849,7 @@ PHP_METHOD(jsonrpc_client, call)
   }
 
   efree(exec_params);
+  efree(func);
 
   /*smart_str buf = {0};
   php_json_encode(&buf, payload, 0 TSRMLS_CC);
@@ -1030,10 +1049,29 @@ PHP_METHOD(jsonrpc_client, execute)
         if (!response_type){
           add_index_zval(response, item->response_id, response_tmp);
         }else {
-          smart_str buf = {0};
-          php_json_encode(&buf, response_tmp, 0 TSRMLS_CC);
-          add_index_stringl(response, item->response_id, buf.c, buf.len, 1);
+          zval *func;
+          zval **exec_params;
+          MAKE_STD_ZVAL(func);
+          exec_params = emalloc(sizeof(zval *) * 1);
+          exec_params[0] = response_tmp;
+
+          ZVAL_STRINGL(func, "Jsonrpc_Yajl::generate", sizeof("Jsonrpc_Yajl::generate") - 1, 0);
+          if (call_user_function(EG(function_table), NULL, func, response_tmp, 1, exec_params TSRMLS_CC) == FAILURE)
+          {
+            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed calling Jsonrpc_Yajl::generate()");
+            return ;
+          }
+
+          efree(exec_params);
+          efree(func);
+
+          add_index_stringl(response, item->response_id, Z_STRVAL_P(response_tmp), Z_STRLEN_P(response_tmp), 1);
           zval_dtor(response_tmp);
+
+          //smart_str buf = {0};
+          //php_json_encode(&buf, response_tmp, 0 TSRMLS_CC);
+          //add_index_stringl(response, item->response_id, buf.c, buf.len, 1);
+          //zval_dtor(response_tmp);
         }
         //zval_ptr_dtor(&response_tmp);
 
