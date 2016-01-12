@@ -73,28 +73,38 @@ if test "$PHP_JSONRPC" != "no"; then
     yajl/yajl_alloc.c \
     yajl/yajl_gen.c"
 
-  if test -r $PHP_CURL/include/curl/easy.h; then
-    CURL_DIR=$PHP_CURL
-  else
-    AC_MSG_CHECKING(for cURL in default path)
-    for i in /usr/local /usr; do
-      if test -r $i/include/curl/easy.h; then
-        CURL_DIR=$i
-        AC_MSG_RESULT(found in $i)
-        break
-      fi
-    done
-  fi
+  for i in /usr /usr/local /opt; do
+    if test -f $i/include/curl/easy.h; then
+      JSONRPC_CURL_DIR=$i
+    fi
+  done
 
-  if test -z "$CURL_DIR"; then
+  if test -z "$JSONRPC_CURL_DIR"; then
     AC_MSG_RESULT(not found)
     AC_MSG_ERROR(Please reinstall the libcurl distribution -
     easy.h should be in <curl-dir>/include/curl/)
   fi
 
-  PHP_ADD_INCLUDE($CURL_DIR/include)
-  PHP_EVAL_LIBLINE($CURL_LIBS, YAR_SHARED_LIBADD)
-  PHP_ADD_LIBRARY_WITH_PATH(curl, $CURL_DIR/$PHP_LIBDIR, YAR_SHARED_LIBADD)
+  AC_MSG_CHECKING([test test jsonrpc $JSONRPC_CURL_DIR])
+
+  PHP_ADD_INCLUDE($JSONRPC_CURL_DIR/include)
+  dnl PHP_ADD_LIBRARY_WITH_PATH(curl, $JSONRPC_CURL_DIR/lib, JSONRPC_CURL_SHARED_LIBADD)
+
+  LIBNAME=curl # you may want to change this
+  LIBSYMBOL=curl_version # you most likely want to change this 
+
+  PHP_CHECK_LIBRARY($LIBNAME,$LIBSYMBOL,
+  [
+   PHP_ADD_LIBRARY_WITH_PATH($LIBNAME, $JSONRPC_CURL_DIR/lib, JSONRPC_SHARED_LIBADD)
+   AC_DEFINE(HAVE_JSONRPC_CURL_LIB,1,[ ])
+  ],[
+   AC_MSG_ERROR([wrong curl lib version or lib not found])
+  ],[
+   -L$JSONRPC_CURL_DIR/lib -lm
+  ])
+  
+  PHP_SUBST(JSONRPC_SHARED_LIBADD)
+
 
   PHP_NEW_EXTENSION(jsonrpc, jsonrpc.c jsr_server.c jsr_client.c jsr_curl.c jsr_list.c jsr_epoll.c jsr_utils.c $YAJL_SOURCES jsr_yajl.c, $ext_shared)
 fi
