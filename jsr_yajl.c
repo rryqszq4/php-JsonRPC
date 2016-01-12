@@ -567,6 +567,8 @@ PHP_METHOD(jsonrpc_yajl, generate)
 
   ZEND_FETCH_RESOURCE(yajl, php_yajl_t *, &instance, -1, "php yajl", le_yajl);
 
+  yajl_gen_reset(yajl->gen, "");
+
   php_yajl_generate(yajl->gen, param TSRMLS_CC);
 
   yajl_gen_get_buf(yajl->gen, &buf, &len);
