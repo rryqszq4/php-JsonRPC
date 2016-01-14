@@ -245,6 +245,7 @@ YAJL generate/parse
 - Jsonrpc_Yajl::parse(string $json)
 
 **generate**
+```php
 <?php
 
 $arr = array(
@@ -260,8 +261,10 @@ string(28) "[1,"string",{"key":"value"}]";
 */
 
 ?>
+```
 
 **parse**
+```php
 <?php
 
 $str = '[1,"string",{"key":"value"}]';
@@ -283,6 +286,7 @@ array(3) {
 */
 
 ?>
+```
 
 
 Error Info

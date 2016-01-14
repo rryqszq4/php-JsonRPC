@@ -245,6 +245,7 @@ YAJL 生成/解析
 - Jsonrpc_Yajl::parse(string $json)
 
 **生成**
+```php
 <?php
 
 $arr = array(
@@ -260,8 +261,10 @@ string(28) "[1,"string",{"key":"value"}]";
 */
 
 ?>
+```
 
 **解析**
+```php
 <?php
 
 $str = '[1,"string",{"key":"value"}]';
@@ -283,6 +286,7 @@ array(3) {
 */
 
 ?>
+```
 
 常见错误信息
 --------------
