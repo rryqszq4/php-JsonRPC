@@ -3,7 +3,7 @@ JsonRPC 2.0 Client and Server
 
 [![Build Status](https://travis-ci.org/rryqszq4/JsonRPC.svg)](https://travis-ci.org/rryqszq4/JsonRPC)
 
-Lightweight, fast multi Json-RPC 2.0 client/server in php extension, base on multi_curl and epoll of the Client. Coroutine in async of writeback, just look like the sync of php response and it is. Compliance [http://www.jsonrpc.org/](http://www.jsonrpc.org/) protocol specification. [中文](https://github.com/rryqszq4/JsonRPC/blob/master/README-cn.md)
+Lightweight, fast multi Json-RPC 2.0 client/server in php extension, base on multi_curl and epoll of the Client. Coroutine in async of writeback, just look like the sync of php response and it is. Jsonrpc_Server support php-fpm or swoole Compliance [http://www.jsonrpc.org/](http://www.jsonrpc.org/) protocol specification. [中文](https://github.com/rryqszq4/JsonRPC/blob/master/README-cn.md)
 
 [jsonrpc in php7](https://github.com/rryqszq4/php7-ext-jsonrpc)
 
@@ -237,6 +237,53 @@ array(1) {
 */
 ?>
 ```
+
+YAJL generate/parse
+-------------------
+**Interface**
+- Jsonrpc_Yajl::generate(array $array)
+- Jsonrpc_Yajl::parse(string $json)
+
+**generate**
+<?php
+
+$arr = array(
+    1,
+    "string",
+    array("key"=>"value")
+);
+
+var_dump(Jsonrpc_Yajl::generate($arr));
+
+/* ==>output
+string(28) "[1,"string",{"key":"value"}]";
+*/
+
+?>
+
+**parse**
+<?php
+
+$str = '[1,"string",{"key":"value"}]';
+
+var_dump(Jsonrpc_Yajl::parse($str));
+
+/* ==>output
+array(3) {
+  [0]=>
+  int(1)
+  [1]=>
+  string(6) "string"
+  [2]=>
+  array(1) {
+    ["key"]=>
+    string(5) "value"
+  }
+}
+*/
+
+?>
+
 
 Error Info
 --------------

@@ -238,6 +238,52 @@ array(1) {
 ?>
 ```
 
+YAJL 生成/解析
+-------------------
+**Interface**
+- Jsonrpc_Yajl::generate(array $array)
+- Jsonrpc_Yajl::parse(string $json)
+
+**生成**
+<?php
+
+$arr = array(
+    1,
+    "string",
+    array("key"=>"value")
+);
+
+var_dump(Jsonrpc_Yajl::generate($arr));
+
+/* ==>output
+string(28) "[1,"string",{"key":"value"}]";
+*/
+
+?>
+
+**解析**
+<?php
+
+$str = '[1,"string",{"key":"value"}]';
+
+var_dump(Jsonrpc_Yajl::parse($str));
+
+/* ==>output
+array(3) {
+  [0]=>
+  int(1)
+  [1]=>
+  string(6) "string"
+  [2]=>
+  array(1) {
+    ["key"]=>
+    string(5) "value"
+  }
+}
+*/
+
+?>
+
 常见错误信息
 --------------
 **jsonrpc 2.0 错误信息**
