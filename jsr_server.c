@@ -641,6 +641,7 @@ PHP_METHOD(jsonrpc_server, jsonformat)
     }
 
     efree(func_params);
+    efree(func);
     //php_json_decode(payload, Z_STRVAL_P(payload), Z_STRLEN_P(payload), 1, 512 TSRMLS_CC);
   }
   if (Z_TYPE_P(payload) != IS_ARRAY){
@@ -781,6 +782,7 @@ PHP_METHOD(jsonrpc_server, executeprocedure)
     }
 
     efree(func_params);
+    efree(func);
 
     //
     //if (Z_TYPE_P(retval) == IS_BOOL){
@@ -816,6 +818,7 @@ PHP_METHOD(jsonrpc_server, executeprocedure)
     }
 
     efree(func_params);
+    efree(func);
 
   }else {
     ZVAL_LONG(return_value, -32601);
