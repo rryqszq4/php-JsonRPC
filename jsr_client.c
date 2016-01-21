@@ -1049,9 +1049,9 @@ PHP_METHOD(jsonrpc_client, execute)
         if (!response_type){
           add_index_zval(response, item->response_id, response_tmp);
         }else {
-          zval *func;
+          //zval *func;
           zval **exec_params;
-          MAKE_STD_ZVAL(func);
+          //MAKE_STD_ZVAL(func);
           exec_params = emalloc(sizeof(zval *) * 1);
           exec_params[0] = response_tmp;
 
@@ -1063,7 +1063,7 @@ PHP_METHOD(jsonrpc_client, execute)
           }
 
           efree(exec_params);
-          efree(func);
+          //efree(func);
 
           add_index_stringl(response, item->response_id, Z_STRVAL_P(response_tmp), Z_STRLEN_P(response_tmp), 1);
           zval_dtor(response_tmp);
