@@ -217,8 +217,8 @@ _write_callback(char *ptr, size_t size, size_t nmemb, void *ctx)
   if (response_code == 200){
     if (!item->write_data){
       item->write_data = malloc(item->write_length + 1);
-      memset(item->write_data, 0, item->write_length);
-      strncpy(item->write_data, ptr, item->write_length+1);
+      memset(item->write_data, 0, item->write_length+1);
+      strncpy(item->write_data, ptr, item->write_length);
     }else {
       item->write_data = realloc(item->write_data, item->write_length + 1);
       strncat(item->write_data, ptr, length);
