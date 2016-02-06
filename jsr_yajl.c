@@ -527,7 +527,7 @@ static zval* php_yajl_new()
     yajl = emalloc(sizeof(php_yajl_t));
 
     yajl->gen = yajl_gen_alloc(NULL);
-    //yajl_gen_config(yajl->gen, yajl_gen_beautify, 1);
+    yajl_gen_config(yajl->gen, yajl_gen_beautify, 1);
     yajl_gen_config(yajl->gen, yajl_gen_validate_utf8, 1);
     yajl_gen_config(yajl->gen, yajl_gen_escape_solidus, 1);
 
