@@ -73,6 +73,11 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(jsonrpc_client_dorequest_arginfo, 0, 0, 1)
   ZEND_ARG_INFO(0, payload)
 ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(jsonrpc_client_authentication_arginfo, 0, 0, 2)
+  ZEND_ARG_INFO(0, username)
+  ZEND_ARG_INFO(0, password)
+ZEND_END_ARG_INFO()
 /* }}} */
 
 static int _php_count_recursive(zval *array, long mode TSRMLS_DC) /* {{{ */
@@ -1195,13 +1200,38 @@ PHP_METHOD(jsonrpc_client, __call)
   efree(exec_params);
 }
 
+PHP_METHOD(jsonrpc_client, authentication)
+{
+  char *username;
+  char *password;
+  long username_len;
+  long password_len;
+
+  zval *object;
+  object = getThis();
+
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &username, &username_len, &password, &password_len) == FAILURE)
+  {
+    return ;
+  }
+
+  zend_update_property_stringl(php_jsonrpc_client_entry,
+      object, "username", sizeof("username")-1, username, username_len TSRMLS_CC
+    );
+
+  zend_update_property_stringl(php_jsonrpc_client_entry,
+      object, "password", sizeof("password")-1, password, password_len TSRMLS_CC
+    );
+}
+
 static const zend_function_entry jsonrpc_client_class_functions[] = {
-  PHP_ME(jsonrpc_client, __construct, jsonrpc_client_construct_arginfo, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
-  PHP_ME(jsonrpc_client, __destruct,  jsonrpc_client_destruct_arginfo,  ZEND_ACC_PUBLIC | ZEND_ACC_DTOR)
-  PHP_ME(jsonrpc_client, connect,     jsonrpc_client_connect_arginfo,   ZEND_ACC_PUBLIC)
-  PHP_ME(jsonrpc_client, __call,      jsonrpc_client___call_arginfo,    ZEND_ACC_PUBLIC)
-  PHP_ME(jsonrpc_client, call,        jsonrpc_client_call_arginfo,      ZEND_ACC_PUBLIC)
-  PHP_ME(jsonrpc_client, execute,     jsonrpc_client_execute_arginfo,   ZEND_ACC_PUBLIC)
+  PHP_ME(jsonrpc_client, __construct,     jsonrpc_client_construct_arginfo,       ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
+  PHP_ME(jsonrpc_client, __destruct,      jsonrpc_client_destruct_arginfo,        ZEND_ACC_PUBLIC | ZEND_ACC_DTOR)
+  PHP_ME(jsonrpc_client, connect,         jsonrpc_client_connect_arginfo,         ZEND_ACC_PUBLIC)
+  PHP_ME(jsonrpc_client, __call,          jsonrpc_client___call_arginfo,          ZEND_ACC_PUBLIC)
+  PHP_ME(jsonrpc_client, call,            jsonrpc_client_call_arginfo,            ZEND_ACC_PUBLIC)
+  PHP_ME(jsonrpc_client, execute,         jsonrpc_client_execute_arginfo,         ZEND_ACC_PUBLIC)
+  PHP_ME(jsonrpc_client, authentication,  jsonrpc_client_authentication_arginfo,  ZEND_ACC_PUBLIC)
   {NULL, NULL, NULL}
 };
 
@@ -1221,6 +1251,8 @@ jsonrpc_client_init(int module_number TSRMLS_DC)
   zend_declare_property_null(php_jsonrpc_client_entry, "request",  sizeof("request")-1,  ZEND_ACC_PUBLIC TSRMLS_CC);
   zend_declare_property_long(php_jsonrpc_client_entry, "response_total",  sizeof("response_total")-1, 0, ZEND_ACC_PUBLIC TSRMLS_CC);
   zend_declare_property_stringl(php_jsonrpc_client_entry, "request_url", sizeof("request_url")-1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+  zend_declare_property_stringl(php_jsonrpc_client_entry, "username", sizeof("username")-1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+  zend_declare_property_stringl(php_jsonrpc_client_entry, "password", sizeof("password")-1, "", 0, ZEND_ACC_PUBLIC TSRMLS_CC);
 
 
   zend_class_entry jsonrpc_client_request_class_entry;
