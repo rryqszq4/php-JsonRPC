@@ -239,6 +239,20 @@ array(1) {
 ?>
 ```
 
+**Authentication**
+```php
+<?php
+
+$client = new Jsonrpc_Client(1);
+
+$client->authentication("Username: username", "Password: password");
+
+$client->call('http://localhost/server.php', 'addition1', array(3,5));
+$result = $client->execute();
+
+?>
+```
+
 YAJL generate/parse
 -------------------
 **Interface**
