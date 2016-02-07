@@ -794,6 +794,9 @@ PHP_METHOD(jsonrpc_client, call)
   zval *response_total;
   zval *coroutine_start;
 
+  zval *username;
+  zval *password;
+
   object = getThis();
 
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ssz|z", &url, &url_len, &procedure, &procedure_len, &params, &id) == FAILURE)
@@ -808,6 +811,14 @@ PHP_METHOD(jsonrpc_client, call)
 
   response_total = zend_read_property(
       php_jsonrpc_client_entry, object, "response_total", sizeof("response_total")-1, 0 TSRMLS_CC
+    );
+
+  username = zend_read_property(
+      php_jsonrpc_client_entry, object, "username", sizeof("username")-1, 0 TSRMLS_CC
+    );
+
+  password = zend_read_property(
+      php_jsonrpc_client_entry, object, "password", sizeof("password")-1, 0 TSRMLS_CC
     );
 
   request = (php_jsr_reuqest_object *)zend_object_store_get_object(request_obj TSRMLS_CC);
@@ -878,6 +889,12 @@ PHP_METHOD(jsonrpc_client, call)
 
   //jsr_curl_item->read_callback = _read_callback;
   jsr_curl_item->write_callback = _write_callback;
+
+  if (strcmp(Z_STRVAL_P(username), "") != 0 && strcmp(Z_STRVAL_P(password), "") != 0)
+  {
+    jsr_curl_item->slist = curl_slist_append(jsr_curl_item->slist, Z_STRVAL_P(username));
+    jsr_curl_item->slist = curl_slist_append(jsr_curl_item->slist, Z_STRVAL_P(password));
+  }
   
   jsr_curl_item_setopt(jsr_curl_item);
   curl_multi_add_handle(request->curlm->multi_handle, jsr_curl_item->curl_handle);
