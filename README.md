@@ -152,9 +152,10 @@ Client
 **Interface**
 - Jsonrpc_Client::__construct(boolean $persist)
 - Jsonrpc_Client::call(string $url, string $procedure, array $params, mixed $id)
-- Jsonrpc_Client::connect(string $url);
-- Jsonrpc_Client::__call(string $procedure, array $params);
+- Jsonrpc_Client::connect(string $url)
+- Jsonrpc_Client::__call(string $procedure, array $params)
 - Jsonrpc_Client::execute(boolean $response_type)
+- Jsonrpc_Client::authentication(string $username, string $password)
 - Jsonrpc_Client::__destruct()
 
 **Persistent**
