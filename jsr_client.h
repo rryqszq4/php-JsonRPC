@@ -98,6 +98,7 @@ PHP_METHOD(jsonrpc_client, call);
 PHP_METHOD(jsonrpc_client, execute);
 PHP_METHOD(jsonrpc_client, connect);
 PHP_METHOD(jsonrpc_client, __call);
+PHP_METHOD(jsonrpc_client, authentication);
 
 void jsonrpc_client_init(int module_number TSRMLS_DC);
 /*
