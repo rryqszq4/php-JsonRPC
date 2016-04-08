@@ -1,6 +1,7 @@
 {
 	"name": "rryqszq4/jsonrpc",
 	"description": "Lightweight, fast JsonRPC 2.0 client/server of PHP extension，base on multi_curl + epoll of client. ",
+	"license": "PHP license 3.01",
 	"authors": [
 		{
 			"name": "rryqszq4",
@@ -8,7 +9,7 @@
 		}
 	],
 	"require": {
-        "php": "5.3 ~ 5.6"
+        "php": ">=5.3, <=5.6"
     },
     "version": "0.0.9"
 }
