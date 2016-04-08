@@ -1,0 +1,14 @@
+{
+	"name": "rryqszq4/JsonRPC",
+	"description": "Lightweight, fast JsonRPC 2.0 client/server of PHP extension，base on multi_curl + epoll of client. ",
+	"authors": [
+		{
+			"name": "rryqszq4",
+			"email": "memwared@gmail.com"
+		}
+	],
+	"require": {
+        "php": "5.3 ~ 5.6"
+    },
+    "version": "0.0.9"
+}
