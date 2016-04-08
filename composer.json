@@ -1,5 +1,5 @@
 {
-	"name": "rryqszq4/JsonRPC",
+	"name": "rryqszq4/jsonrpc",
 	"description": "Lightweight, fast JsonRPC 2.0 client/server of PHP extension，base on multi_curl + epoll of client. ",
 	"authors": [
 		{
